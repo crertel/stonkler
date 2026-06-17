@@ -18,6 +18,8 @@ func runForex(ctx context.Context, args []string, stdout, stderr io.Writer, gete
 	case "-h", "--help", "help":
 		writeForexHelp(stdout)
 		return 0
+	case "history":
+		return runDomainHistory(ctx, args[1:], stdout, stderr, getenv, "forex", writeForexHistoryHelp, nil)
 	case "quote", "quotes":
 		return runDomainQuote(ctx, args[1:], stdout, stderr, getenv, "forex", writeForexQuoteHelp, forexQuotes)
 	default:
@@ -38,6 +40,7 @@ Usage:
   stonk forex <command> [flags]
 
 Commands:
+  history Fetch historical end-of-day forex prices
   quote   Fetch one or more forex quotes
   quotes  Alias for quote
 `)
@@ -53,5 +56,20 @@ Usage:
 Flags:
   --json  Write JSON output
   --csv   Write CSV output
+`)
+}
+
+func writeForexHistoryHelp(w io.Writer) {
+	fmt.Fprint(w, `Fetch historical end-of-day forex prices.
+
+Usage:
+  stonk forex history <symbol> [flags]
+
+Flags:
+  --from <date>  Start date in YYYY-MM-DD format
+  --to <date>    End date in YYYY-MM-DD format
+  --limit <n>    Maximum rows to print
+  --json         Write JSON output
+  --csv          Write CSV output
 `)
 }
