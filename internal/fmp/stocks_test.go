@@ -233,6 +233,43 @@ func TestInsiderTradesUsesStableEndpoint(t *testing.T) {
 	}
 }
 
+func TestSECFilingsUsesV3Endpoint(t *testing.T) {
+	transport := roundTripFunc(func(r *http.Request) (*http.Response, error) {
+		if got := r.Header.Get("apikey"); got != "secret-value" {
+			t.Fatalf("apikey header = %q, want secret-value", got)
+		}
+		if got := r.URL.Query().Get("apikey"); got != "" {
+			t.Fatalf("apikey query = %q, want empty", got)
+		}
+		if got := r.URL.Path; got != "/sec_filings/AAPL" {
+			t.Fatalf("path = %q, want /sec_filings/AAPL", got)
+		}
+		if got := r.URL.Query().Get("limit"); got != "3" {
+			t.Fatalf("limit query = %q, want 3", got)
+		}
+
+		return &http.Response{
+			StatusCode: http.StatusOK,
+			Header:     make(http.Header),
+			Body:       io.NopCloser(strings.NewReader(`[{"symbol":"AAPL","fillingDate":"2026-05-29 00:00:00","acceptedDate":"2026-05-29 18:30:27","cik":"0000320193","type":"4","link":"https://www.sec.gov/Archives/edgar/data/320193/example-index.htm","finalLink":"https://www.sec.gov/Archives/edgar/data/320193/example.xml"}]`)),
+		}, nil
+	})
+
+	client := NewClient("secret-value", &http.Client{Transport: transport})
+	client.v3BaseURL = "https://example.test"
+
+	filings, err := client.SECFilings(context.Background(), "aapl", 3)
+	if err != nil {
+		t.Fatalf("SECFilings() error = %v", err)
+	}
+	if len(filings) != 1 {
+		t.Fatalf("len(filings) = %d, want 1", len(filings))
+	}
+	if filings[0].Type != "4" {
+		t.Fatalf("filings[0].Type = %q, want 4", filings[0].Type)
+	}
+}
+
 func TestBatchQuotesHandlesNullMarketCapAndChangeFieldVariants(t *testing.T) {
 	transport := roundTripFunc(func(r *http.Request) (*http.Response, error) {
 		return &http.Response{

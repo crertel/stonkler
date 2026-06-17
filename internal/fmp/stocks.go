@@ -71,6 +71,17 @@ type InsiderTrade struct {
 	URL                      string  `json:"url"`
 }
 
+// SECFiling is one SEC filing row returned by FMP.
+type SECFiling struct {
+	Symbol       string `json:"symbol"`
+	FilingDate   string `json:"fillingDate"`
+	AcceptedDate string `json:"acceptedDate"`
+	CIK          string `json:"cik"`
+	Type         string `json:"type"`
+	Link         string `json:"link"`
+	FinalLink    string `json:"finalLink"`
+}
+
 // UnmarshalJSON accepts both stable and v4 insider field variants.
 func (t *InsiderTrade) UnmarshalJSON(data []byte) error {
 	var raw struct {
@@ -239,6 +250,28 @@ func (c *Client) InsiderTrades(ctx context.Context, symbol string, limit int) ([
 		trades = trades[:limit]
 	}
 	return trades, nil
+}
+
+// SECFilings returns recent SEC filings for a stock symbol.
+func (c *Client) SECFilings(ctx context.Context, symbol string, limit int) ([]SECFiling, error) {
+	symbol = strings.ToUpper(strings.TrimSpace(symbol))
+	if symbol == "" {
+		return nil, fmt.Errorf("symbol is required")
+	}
+	if limit < 0 {
+		return nil, fmt.Errorf("limit must be non-negative")
+	}
+
+	query := url.Values{}
+	if limit > 0 {
+		query.Set("limit", fmt.Sprint(limit))
+	}
+
+	var filings []SECFiling
+	if err := c.getV3(ctx, "/sec_filings/"+url.PathEscape(symbol), query, &filings); err != nil {
+		return nil, err
+	}
+	return filings, nil
 }
 
 // BatchQuotes returns current quote data for symbols supported by the stable batch quote endpoint.
