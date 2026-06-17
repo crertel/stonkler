@@ -53,7 +53,7 @@ func runGet(ctx context.Context, args []string, stdout, stderr io.Writer, getenv
 	case "peers":
 		return runStocksPeers(ctx, args[1:], stdout, stderr, getenv)
 	case "quote", "quotes":
-		return runStocksQuote(ctx, args[1:], stdout, stderr, getenv)
+		return runGetQuote(ctx, args[1:], stdout, stderr, getenv)
 	case "ratios":
 		return runStocksRatios(ctx, args[1:], stdout, stderr, getenv)
 	case "sec":
