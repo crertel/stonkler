@@ -18,6 +18,8 @@ func runGet(ctx context.Context, args []string, stdout, stderr io.Writer, getenv
 		return 0
 	case "company", "profile":
 		return runStocksProfile(ctx, args[1:], stdout, stderr, getenv)
+	case "history":
+		return runStocksHistory(ctx, args[1:], stdout, stderr, getenv)
 	case "quote", "quotes":
 		return runStocksQuote(ctx, args[1:], stdout, stderr, getenv)
 	default:
@@ -35,6 +37,7 @@ Usage:
 
 Commands:
   company Fetch company profile data, inferring the stock domain for now
+  history Fetch historical prices, inferring the stock domain for now
   profile Alias for company
   quote   Fetch one or more quotes, inferring the stock domain for now
   quotes  Alias for quote
