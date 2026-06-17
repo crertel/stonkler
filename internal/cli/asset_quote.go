@@ -58,3 +58,41 @@ func runDomainQuote(
 	}
 	return 0
 }
+
+func runQuoteWatchCommand(
+	ctx context.Context,
+	args []string,
+	stdout io.Writer,
+	stderr io.Writer,
+	getenv getenvFunc,
+	domain string,
+	help func(io.Writer),
+	fetch quoteFetcher,
+) int {
+	if len(args) == 0 {
+		help(stdout)
+		return 0
+	}
+	if args[0] == "-h" || args[0] == "--help" || args[0] == "help" {
+		help(stdout)
+		return 0
+	}
+
+	options, ok := parseWatchOptions(args, stderr)
+	if !ok {
+		return 2
+	}
+	if len(options.symbols) == 0 {
+		fmt.Fprintf(stderr, "%s watch requires at least one symbol\n", domain)
+		return 2
+	}
+
+	apiKey := getenv("FMP_API_KEY")
+	if apiKey == "" {
+		fmt.Fprintln(stderr, "FMP_API_KEY is not configured")
+		return 1
+	}
+
+	client := fmp.NewClient(apiKey, http.DefaultClient)
+	return runQuoteWatchLoop(ctx, stdout, stderr, client, options, fetch)
+}

@@ -22,6 +22,8 @@ func runCrypto(ctx context.Context, args []string, stdout, stderr io.Writer, get
 		return runDomainHistory(ctx, args[1:], stdout, stderr, getenv, "crypto", writeCryptoHistoryHelp, nil)
 	case "quote", "quotes":
 		return runDomainQuote(ctx, args[1:], stdout, stderr, getenv, "crypto", writeCryptoQuoteHelp, cryptoQuotes)
+	case "watch":
+		return runCryptoWatch(ctx, args[1:], stdout, stderr, getenv)
 	default:
 		fmt.Fprintf(stderr, "unknown crypto command %q\n\n", args[0])
 		writeCryptoHelp(stderr)
@@ -43,6 +45,7 @@ Commands:
   history Fetch historical end-of-day crypto prices
   quote   Fetch one or more cryptocurrency quotes
   quotes  Alias for quote
+  watch   Refresh cryptocurrency quotes in a terminal view
 `)
 }
 
@@ -71,5 +74,22 @@ Flags:
   --limit <n>    Maximum rows to print
   --json         Write JSON output
   --csv          Write CSV output
+`)
+}
+
+func runCryptoWatch(ctx context.Context, args []string, stdout, stderr io.Writer, getenv getenvFunc) int {
+	return runQuoteWatchCommand(ctx, args, stdout, stderr, getenv, "crypto", writeCryptoWatchHelp, cryptoQuotes)
+}
+
+func writeCryptoWatchHelp(w io.Writer) {
+	fmt.Fprint(w, `Refresh cryptocurrency quotes in a terminal view.
+
+Usage:
+  stonk crypto watch <symbol> [symbol...] [flags]
+
+Flags:
+  --interval <duration>  Refresh interval, such as 5s or 1m
+  --count <n>            Number of refreshes before exiting
+  --jsonl                Write newline-delimited JSON updates
 `)
 }

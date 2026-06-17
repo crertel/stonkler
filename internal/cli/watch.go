@@ -51,7 +51,9 @@ func runStocksWatch(ctx context.Context, args []string, stdout, stderr io.Writer
 	}
 
 	client := fmp.NewClient(apiKey, http.DefaultClient)
-	return runStockWatchLoop(ctx, stdout, stderr, client, options)
+	return runQuoteWatchLoop(ctx, stdout, stderr, client, options, func(ctx context.Context, client *fmp.Client, symbols []string) ([]fmp.Quote, error) {
+		return client.StockQuotes(ctx, symbols)
+	})
 }
 
 func parseWatchOptions(args []string, stderr io.Writer) (watchOptions, bool) {
@@ -100,7 +102,7 @@ func parseWatchOptions(args []string, stderr io.Writer) (watchOptions, bool) {
 	return options, true
 }
 
-func runStockWatchLoop(ctx context.Context, stdout, stderr io.Writer, client *fmp.Client, options watchOptions) int {
+func runQuoteWatchLoop(ctx context.Context, stdout, stderr io.Writer, client *fmp.Client, options watchOptions, fetch quoteFetcher) int {
 	iteration := 0
 	for {
 		if options.count > 0 && iteration >= options.count {
@@ -109,7 +111,7 @@ func runStockWatchLoop(ctx context.Context, stdout, stderr io.Writer, client *fm
 		iteration++
 
 		now := time.Now().Format(time.RFC3339)
-		quotes, err := client.StockQuotes(ctx, options.symbols)
+		quotes, err := fetch(ctx, client, options.symbols)
 		if options.jsonl {
 			if writeStockWatchJSONL(stdout, now, quotes, err) != nil {
 				fmt.Fprintln(stderr, "failed to write output")
