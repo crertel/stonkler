@@ -8,12 +8,16 @@ import (
 	"net/url"
 )
 
-const defaultBaseURL = "https://financialmodelingprep.com/stable"
+const (
+	defaultBaseURL   = "https://financialmodelingprep.com/stable"
+	defaultV3BaseURL = "https://financialmodelingprep.com/api/v3"
+)
 
 // Client calls the Financial Modeling Prep stable API.
 type Client struct {
 	apiKey     string
 	baseURL    string
+	v3BaseURL  string
 	httpClient *http.Client
 }
 
@@ -26,12 +30,44 @@ func NewClient(apiKey string, httpClient *http.Client) *Client {
 	return &Client{
 		apiKey:     apiKey,
 		baseURL:    defaultBaseURL,
+		v3BaseURL:  defaultV3BaseURL,
 		httpClient: httpClient,
 	}
 }
 
 func (c *Client) get(ctx context.Context, path string, query url.Values, out any) error {
 	endpoint, err := url.Parse(c.baseURL + path)
+	if err != nil {
+		return err
+	}
+	endpoint.RawQuery = query.Encode()
+
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, endpoint.String(), nil)
+	if err != nil {
+		return err
+	}
+	req.Header.Set("apikey", c.apiKey)
+	req.Header.Set("Accept", "application/json")
+
+	resp, err := c.httpClient.Do(req)
+	if err != nil {
+		return err
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode < 200 || resp.StatusCode > 299 {
+		return fmt.Errorf("fmp returned HTTP %d", resp.StatusCode)
+	}
+
+	dec := json.NewDecoder(resp.Body)
+	if err := dec.Decode(out); err != nil {
+		return err
+	}
+	return nil
+}
+
+func (c *Client) getV3(ctx context.Context, path string, query url.Values, out any) error {
+	endpoint, err := url.Parse(c.v3BaseURL + path)
 	if err != nil {
 		return err
 	}
