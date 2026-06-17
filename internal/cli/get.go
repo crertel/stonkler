@@ -42,6 +42,8 @@ func runGet(ctx context.Context, args []string, stdout, stderr io.Writer, getenv
 		return runDomainHistory(ctx, args[1:], stdout, stderr, getenv, "indexes", writeIndexesHistoryHelp, normalizeIndexSymbol)
 	case "metrics":
 		return runStocksMetrics(ctx, args[1:], stdout, stderr, getenv)
+	case "peers":
+		return runStocksPeers(ctx, args[1:], stdout, stderr, getenv)
 	case "quote", "quotes":
 		return runStocksQuote(ctx, args[1:], stdout, stderr, getenv)
 	case "ratios":
@@ -75,6 +77,7 @@ Commands:
   index   Fetch index quotes
   index-history Fetch index history
   metrics Fetch stock key metrics, inferring the stock domain for now
+  peers   Fetch stock peers, inferring the stock domain for now
   profile Alias for company
   quote   Fetch one or more quotes, inferring the stock domain for now
   quotes  Alias for quote
