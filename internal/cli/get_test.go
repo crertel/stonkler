@@ -166,6 +166,19 @@ func TestRunGetSectorWeightingsUsesFundsSectorWeightingsValidation(t *testing.T)
 	}
 }
 
+func TestRunGetCountryWeightingsUsesFundsCountryWeightingsValidation(t *testing.T) {
+	var stdout, stderr bytes.Buffer
+
+	code := runGet(context.Background(), []string{"country-weightings", "VXUS"}, &stdout, &stderr, func(string) string { return "" })
+
+	if code != 1 {
+		t.Fatalf("runGet() code = %d, want 1", code)
+	}
+	if !strings.Contains(stderr.String(), "FMP_API_KEY is not configured") {
+		t.Fatalf("stderr = %q, want missing FMP key error", stderr.String())
+	}
+}
+
 func TestRunGetHoldingsUsesFundsHoldingsValidation(t *testing.T) {
 	var stdout, stderr bytes.Buffer
 
