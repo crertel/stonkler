@@ -23,6 +23,8 @@ func runIndexes(ctx context.Context, args []string, stdout, stderr io.Writer, ge
 		return runDomainHistory(ctx, args[1:], stdout, stderr, getenv, "indexes", writeIndexesHistoryHelp, normalizeIndexSymbol)
 	case "quote", "quotes":
 		return runDomainQuote(ctx, args[1:], stdout, stderr, getenv, "indexes", writeIndexesQuoteHelp, indexQuotes)
+	case "watch":
+		return runIndexesWatch(ctx, args[1:], stdout, stderr, getenv)
 	default:
 		fmt.Fprintf(stderr, "unknown indexes command %q\n\n", args[0])
 		writeIndexesHelp(stderr)
@@ -44,6 +46,7 @@ Commands:
   history Fetch historical end-of-day index prices
   quote   Fetch one or more index quotes
   quotes  Alias for quote
+  watch   Refresh index quotes in a terminal view
 `)
 }
 
@@ -81,4 +84,21 @@ func normalizeIndexSymbol(symbol string) string {
 		return symbol
 	}
 	return "^" + symbol
+}
+
+func runIndexesWatch(ctx context.Context, args []string, stdout, stderr io.Writer, getenv getenvFunc) int {
+	return runQuoteWatchCommand(ctx, args, stdout, stderr, getenv, "indexes", writeIndexesWatchHelp, indexQuotes)
+}
+
+func writeIndexesWatchHelp(w io.Writer) {
+	fmt.Fprint(w, `Refresh index quotes in a terminal view.
+
+Usage:
+  stonk indexes watch <symbol> [symbol...] [flags]
+
+Flags:
+  --interval <duration>  Refresh interval, such as 5s or 1m
+  --count <n>            Number of refreshes before exiting
+  --jsonl                Write newline-delimited JSON updates
+`)
 }

@@ -57,3 +57,16 @@ func TestNormalizeIndexSymbol(t *testing.T) {
 		t.Fatalf("normalizeIndexSymbol() = %q, want ^DJI", got)
 	}
 }
+
+func TestRunIndexesWatchMissingKey(t *testing.T) {
+	var stdout, stderr bytes.Buffer
+
+	code := runIndexes(context.Background(), []string{"watch", "GSPC"}, &stdout, &stderr, func(string) string { return "" })
+
+	if code != 1 {
+		t.Fatalf("runIndexes() code = %d, want 1", code)
+	}
+	if !strings.Contains(stderr.String(), "FMP_API_KEY is not configured") {
+		t.Fatalf("stderr = %q, want missing key error", stderr.String())
+	}
+}
