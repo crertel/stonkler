@@ -18,6 +18,8 @@ func runGet(ctx context.Context, args []string, stdout, stderr io.Writer, getenv
 		return 0
 	case "company", "profile":
 		return runStocksProfile(ctx, args[1:], stdout, stderr, getenv)
+	case "etf", "fund", "fund-info":
+		return runFundsInfo(ctx, args[1:], stdout, stderr, getenv)
 	case "history":
 		return runStocksHistory(ctx, args[1:], stdout, stderr, getenv)
 	case "holdings":
@@ -41,6 +43,7 @@ Usage:
 
 Commands:
   company Fetch company profile data, inferring the stock domain for now
+  fund    Fetch ETF or fund profile information
   history Fetch historical prices, inferring the stock domain for now
   holdings Fetch ETF holdings, inferring the funds domain for now
   profile Alias for company
