@@ -115,3 +115,40 @@ func TestETFCountryWeightingsUsesStableEndpoint(t *testing.T) {
 		t.Fatalf("weightings[0].Country = %q, want Japan", weightings[0].Country)
 	}
 }
+
+func TestETFAssetExposureUsesStableEndpoint(t *testing.T) {
+	transport := roundTripFunc(func(r *http.Request) (*http.Response, error) {
+		if got := r.Header.Get("apikey"); got != "secret-value" {
+			t.Fatalf("apikey header = %q, want secret-value", got)
+		}
+		if got := r.URL.Query().Get("apikey"); got != "" {
+			t.Fatalf("apikey query = %q, want empty", got)
+		}
+		if got := r.URL.Path; got != "/etf/asset-exposure" {
+			t.Fatalf("path = %q, want /etf/asset-exposure", got)
+		}
+		if got := r.URL.Query().Get("symbol"); got != "AAPL" {
+			t.Fatalf("symbol query = %q, want AAPL", got)
+		}
+
+		return &http.Response{
+			StatusCode: http.StatusOK,
+			Header:     make(http.Header),
+			Body:       io.NopCloser(strings.NewReader(`[{"symbol":"SPY","asset":"AAPL","name":"APPLE INC","sharesNumber":176183317,"weightPercentage":6.81,"marketValue":53568630492}]`)),
+		}, nil
+	})
+
+	client := NewClient("secret-value", &http.Client{Transport: transport})
+	client.baseURL = "https://example.test"
+
+	exposures, err := client.ETFAssetExposure(context.Background(), "aapl")
+	if err != nil {
+		t.Fatalf("ETFAssetExposure() error = %v", err)
+	}
+	if len(exposures) != 1 {
+		t.Fatalf("len(exposures) = %d, want 1", len(exposures))
+	}
+	if exposures[0]["symbol"] != "SPY" {
+		t.Fatalf("exposures[0][symbol] = %q, want SPY", exposures[0]["symbol"])
+	}
+}

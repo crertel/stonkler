@@ -18,6 +18,8 @@ func runFunds(ctx context.Context, args []string, stdout, stderr io.Writer, gete
 	case "-h", "--help", "help":
 		writeFundsHelp(stdout)
 		return 0
+	case "exposure":
+		return runFundsExposure(ctx, args[1:], stdout, stderr, getenv)
 	case "country-weightings":
 		return runFundsCountryWeightings(ctx, args[1:], stdout, stderr, getenv)
 	case "holdings":
@@ -43,6 +45,7 @@ Usage:
 
 Commands:
   country-weightings Fetch ETF or fund country allocation weights
+  exposure          Fetch ETF or fund exposure to an asset
   holdings          Fetch ETF holdings
   info              Fetch ETF or fund profile information
   sector-weightings Fetch ETF or fund sector allocation weights

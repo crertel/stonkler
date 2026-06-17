@@ -37,6 +37,9 @@ type ETFCountryWeighting struct {
 	WeightPercentage string `json:"weightPercentage"`
 }
 
+// ETFAssetExposure is one raw ETF exposure row returned by FMP.
+type ETFAssetExposure map[string]any
+
 // ETFHoldings returns holdings for an ETF symbol.
 func (c *Client) ETFHoldings(ctx context.Context, symbol string) ([]ETFHolding, error) {
 	symbol = strings.ToUpper(strings.TrimSpace(symbol))
@@ -77,4 +80,18 @@ func (c *Client) ETFCountryWeightings(ctx context.Context, symbol string) ([]ETF
 		return nil, err
 	}
 	return weightings, nil
+}
+
+// ETFAssetExposure returns ETFs and funds exposed to a specific asset symbol.
+func (c *Client) ETFAssetExposure(ctx context.Context, symbol string) ([]ETFAssetExposure, error) {
+	symbol = strings.ToUpper(strings.TrimSpace(symbol))
+	if symbol == "" {
+		return nil, fmt.Errorf("symbol is required")
+	}
+
+	var exposures []ETFAssetExposure
+	if err := c.get(ctx, "/etf/asset-exposure", url.Values{"symbol": []string{symbol}}, &exposures); err != nil {
+		return nil, err
+	}
+	return exposures, nil
 }
