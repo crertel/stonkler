@@ -24,6 +24,8 @@ func runStocks(ctx context.Context, args []string, stdout, stderr io.Writer, get
 	case "-h", "--help", "help":
 		writeStocksHelp(stdout)
 		return 0
+	case "profile":
+		return runStocksProfile(ctx, args[1:], stdout, stderr, getenv)
 	case "quote", "quotes":
 		return runStocksQuote(ctx, args[1:], stdout, stderr, getenv)
 	case "watch":
@@ -81,6 +83,7 @@ Usage:
   stonk stocks <command> [flags]
 
 Commands:
+  profile Fetch company profile data
   quote   Fetch one or more stock quotes
   quotes  Alias for quote
   watch   Refresh stock quotes in a terminal view
@@ -93,6 +96,18 @@ func writeStocksQuoteHelp(w io.Writer) {
 Usage:
   stonk stocks quote <symbol> [symbol...] [flags]
   stonk stocks quotes <symbol> [symbol...] [flags]
+
+Flags:
+  --json  Write JSON output
+  --csv   Write CSV output
+`)
+}
+
+func writeStocksProfileHelp(w io.Writer) {
+	fmt.Fprint(w, `Fetch company profile data.
+
+Usage:
+  stonk stocks profile <symbol> [flags]
 
 Flags:
   --json  Write JSON output
