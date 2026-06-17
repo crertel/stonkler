@@ -74,7 +74,7 @@ Flags:
 }
 
 func getQuoteSymbols(ctx context.Context, client getQuoteClient, queries []string) ([]string, error) {
-	if len(queries) != 1 || !shouldResolveGetQuoteQuery(queries[0]) {
+	if len(queries) != 1 || !shouldResolveGetNameQuery(queries[0]) {
 		return queries, nil
 	}
 
@@ -82,14 +82,14 @@ func getQuoteSymbols(ctx context.Context, client getQuoteClient, queries []strin
 	if err != nil {
 		return nil, err
 	}
-	symbol, ok := firstSearchSymbol(results)
+	symbol, ok := bestSearchSymbol(results)
 	if !ok {
 		return nil, fmt.Errorf("no symbol found for %q", queries[0])
 	}
 	return []string{symbol}, nil
 }
 
-func shouldResolveGetQuoteQuery(query string) bool {
+func shouldResolveGetNameQuery(query string) bool {
 	trimmed := strings.TrimSpace(query)
 	if trimmed == "" {
 		return false
@@ -97,7 +97,7 @@ func shouldResolveGetQuoteQuery(query string) bool {
 	return strings.ContainsAny(trimmed, " \t") || trimmed != strings.ToUpper(trimmed)
 }
 
-func firstSearchSymbol(results []fmp.SearchResult) (string, bool) {
+func bestSearchSymbol(results []fmp.SearchResult) (string, bool) {
 	bestSymbol := ""
 	bestScore := -1
 	for _, result := range results {
@@ -105,7 +105,7 @@ func firstSearchSymbol(results []fmp.SearchResult) (string, bool) {
 		if symbol == "" {
 			continue
 		}
-		score := searchQuoteSymbolScore(result)
+		score := searchSymbolScore(result)
 		if score > bestScore {
 			bestSymbol = strings.ToUpper(symbol)
 			bestScore = score
@@ -117,7 +117,7 @@ func firstSearchSymbol(results []fmp.SearchResult) (string, bool) {
 	return "", false
 }
 
-func searchQuoteSymbolScore(result fmp.SearchResult) int {
+func searchSymbolScore(result fmp.SearchResult) int {
 	score := 0
 	if strings.EqualFold(result.Currency, "USD") {
 		score += 10
