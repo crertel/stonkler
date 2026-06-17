@@ -57,7 +57,7 @@ func runGet(ctx context.Context, args []string, stdout, stderr io.Writer, getenv
 	case "ratios":
 		return runGetRatios(ctx, args[1:], stdout, stderr, getenv)
 	case "sec":
-		return runStocksSEC(ctx, args[1:], stdout, stderr, getenv)
+		return runGetSEC(ctx, args[1:], stdout, stderr, getenv)
 	case "sector-weightings":
 		return runFundsSectorWeightings(ctx, args[1:], stdout, stderr, getenv)
 	case "statement", "statements":
