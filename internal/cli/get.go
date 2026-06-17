@@ -16,6 +16,8 @@ func runGet(ctx context.Context, args []string, stdout, stderr io.Writer, getenv
 	case "-h", "--help", "help":
 		writeGetHelp(stdout)
 		return 0
+	case "analyst":
+		return runStocksAnalyst(ctx, args[1:], stdout, stderr, getenv)
 	case "company", "profile":
 		return runStocksProfile(ctx, args[1:], stdout, stderr, getenv)
 	case "commodity", "commodities":
@@ -64,6 +66,7 @@ Usage:
   stonk get <command> [flags]
 
 Commands:
+  analyst Fetch stock analyst rating snapshot, inferring the stock domain for now
   company Fetch company profile data, inferring the stock domain for now
   commodity Fetch commodity quotes
   commodity-history Fetch commodity history
