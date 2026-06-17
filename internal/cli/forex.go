@@ -22,6 +22,8 @@ func runForex(ctx context.Context, args []string, stdout, stderr io.Writer, gete
 		return runDomainHistory(ctx, args[1:], stdout, stderr, getenv, "forex", writeForexHistoryHelp, nil)
 	case "quote", "quotes":
 		return runDomainQuote(ctx, args[1:], stdout, stderr, getenv, "forex", writeForexQuoteHelp, forexQuotes)
+	case "watch":
+		return runForexWatch(ctx, args[1:], stdout, stderr, getenv)
 	default:
 		fmt.Fprintf(stderr, "unknown forex command %q\n\n", args[0])
 		writeForexHelp(stderr)
@@ -43,6 +45,7 @@ Commands:
   history Fetch historical end-of-day forex prices
   quote   Fetch one or more forex quotes
   quotes  Alias for quote
+  watch   Refresh forex quotes in a terminal view
 `)
 }
 
@@ -71,5 +74,22 @@ Flags:
   --limit <n>    Maximum rows to print
   --json         Write JSON output
   --csv          Write CSV output
+`)
+}
+
+func runForexWatch(ctx context.Context, args []string, stdout, stderr io.Writer, getenv getenvFunc) int {
+	return runQuoteWatchCommand(ctx, args, stdout, stderr, getenv, "forex", writeForexWatchHelp, forexQuotes)
+}
+
+func writeForexWatchHelp(w io.Writer) {
+	fmt.Fprint(w, `Refresh forex quotes in a terminal view.
+
+Usage:
+  stonk forex watch <symbol> [symbol...] [flags]
+
+Flags:
+  --interval <duration>  Refresh interval, such as 5s or 1m
+  --count <n>            Number of refreshes before exiting
+  --jsonl                Write newline-delimited JSON updates
 `)
 }
