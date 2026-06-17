@@ -96,6 +96,27 @@ func TestCompanyScreenerUsesStableEndpoint(t *testing.T) {
 	}
 }
 
+func TestClientIncludesHTTPErrorBody(t *testing.T) {
+	transport := roundTripFunc(func(r *http.Request) (*http.Response, error) {
+		return &http.Response{
+			StatusCode: http.StatusPaymentRequired,
+			Header:     make(http.Header),
+			Body:       io.NopCloser(strings.NewReader("Restricted Endpoint")),
+		}, nil
+	})
+
+	client := NewClient("secret-value", &http.Client{Transport: transport})
+	client.baseURL = "https://example.test"
+
+	_, err := client.SearchName(context.Background(), "apple")
+	if err == nil {
+		t.Fatal("SearchName() error = nil, want error")
+	}
+	if !strings.Contains(err.Error(), "fmp returned HTTP 402: Restricted Endpoint") {
+		t.Fatalf("error = %q, want HTTP status and body", err.Error())
+	}
+}
+
 type roundTripFunc func(*http.Request) (*http.Response, error)
 
 func (f roundTripFunc) RoundTrip(req *http.Request) (*http.Response, error) {

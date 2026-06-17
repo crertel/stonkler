@@ -4,8 +4,10 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"io"
 	"net/http"
 	"net/url"
+	"strings"
 )
 
 const (
@@ -59,7 +61,7 @@ func (c *Client) get(ctx context.Context, path string, query url.Values, out any
 	defer resp.Body.Close()
 
 	if resp.StatusCode < 200 || resp.StatusCode > 299 {
-		return fmt.Errorf("fmp returned HTTP %d", resp.StatusCode)
+		return httpStatusError(resp)
 	}
 
 	dec := json.NewDecoder(resp.Body)
@@ -98,7 +100,7 @@ func (c *Client) getFromBase(ctx context.Context, baseURL, path string, query ur
 	defer resp.Body.Close()
 
 	if resp.StatusCode < 200 || resp.StatusCode > 299 {
-		return fmt.Errorf("fmp returned HTTP %d", resp.StatusCode)
+		return httpStatusError(resp)
 	}
 
 	dec := json.NewDecoder(resp.Body)
@@ -106,4 +108,13 @@ func (c *Client) getFromBase(ctx context.Context, baseURL, path string, query ur
 		return err
 	}
 	return nil
+}
+
+func httpStatusError(resp *http.Response) error {
+	body, _ := io.ReadAll(io.LimitReader(resp.Body, 512))
+	message := strings.TrimSpace(string(body))
+	if message == "" {
+		return fmt.Errorf("fmp returned HTTP %d", resp.StatusCode)
+	}
+	return fmt.Errorf("fmp returned HTTP %d: %s", resp.StatusCode, message)
 }
