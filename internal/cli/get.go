@@ -30,6 +30,8 @@ func runGet(ctx context.Context, args []string, stdout, stderr io.Writer, getenv
 		return runDomainQuote(ctx, args[1:], stdout, stderr, getenv, "crypto", writeCryptoQuoteHelp, cryptoQuotes)
 	case "crypto-history":
 		return runDomainHistory(ctx, args[1:], stdout, stderr, getenv, "crypto", writeCryptoHistoryHelp, nil)
+	case "exposure":
+		return runFundsExposure(ctx, args[1:], stdout, stderr, getenv)
 	case "etf", "fund", "fund-info":
 		return runFundsInfo(ctx, args[1:], stdout, stderr, getenv)
 	case "forex":
@@ -83,6 +85,7 @@ Commands:
   commodity-history Fetch commodity history
   crypto  Fetch cryptocurrency quotes
   crypto-history Fetch cryptocurrency history
+  exposure Fetch ETF or fund exposure to an asset
   fund    Fetch ETF or fund profile information
   forex   Fetch foreign exchange quotes
   forex-history Fetch foreign exchange history
