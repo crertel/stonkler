@@ -34,7 +34,7 @@ func runSearch(ctx context.Context, args []string, stdout, stderr io.Writer, get
 	mode := "name"
 	queryArgs := remaining
 	switch remaining[0] {
-	case "stocks", "name", "symbol", "cik", "isin":
+	case "stocks", "funds", "name", "symbol", "cik", "isin":
 		mode = remaining[0]
 		queryArgs = remaining[1:]
 	}
@@ -69,7 +69,7 @@ func runSearch(ctx context.Context, args []string, stdout, stderr io.Writer, get
 
 func runSearchQuery(ctx context.Context, client *fmp.Client, mode string, query string) ([]fmp.SearchResult, error) {
 	switch mode {
-	case "stocks", "name":
+	case "stocks", "funds", "name":
 		return client.SearchName(ctx, query)
 	case "symbol":
 		return client.SearchSymbol(ctx, query)
@@ -88,6 +88,7 @@ func writeSearchHelp(w io.Writer) {
 Usage:
   stonk search [flags] <query>
   stonk search [flags] stocks <query>
+  stonk search [flags] funds <query>
   stonk search [flags] name <query>
   stonk search [flags] symbol <query>
   stonk search [flags] cik <cik>
