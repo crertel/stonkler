@@ -78,3 +78,40 @@ func TestETFSectorWeightingsUsesStableEndpoint(t *testing.T) {
 		t.Fatalf("weightings[0].Sector = %q, want Technology", weightings[0].Sector)
 	}
 }
+
+func TestETFCountryWeightingsUsesStableEndpoint(t *testing.T) {
+	transport := roundTripFunc(func(r *http.Request) (*http.Response, error) {
+		if got := r.Header.Get("apikey"); got != "secret-value" {
+			t.Fatalf("apikey header = %q, want secret-value", got)
+		}
+		if got := r.URL.Query().Get("apikey"); got != "" {
+			t.Fatalf("apikey query = %q, want empty", got)
+		}
+		if got := r.URL.Path; got != "/etf/country-weightings" {
+			t.Fatalf("path = %q, want /etf/country-weightings", got)
+		}
+		if got := r.URL.Query().Get("symbol"); got != "VXUS" {
+			t.Fatalf("symbol query = %q, want VXUS", got)
+		}
+
+		return &http.Response{
+			StatusCode: http.StatusOK,
+			Header:     make(http.Header),
+			Body:       io.NopCloser(strings.NewReader(`[{"country":"Japan","weightPercentage":"14.49%"}]`)),
+		}, nil
+	})
+
+	client := NewClient("secret-value", &http.Client{Transport: transport})
+	client.baseURL = "https://example.test"
+
+	weightings, err := client.ETFCountryWeightings(context.Background(), "vxus")
+	if err != nil {
+		t.Fatalf("ETFCountryWeightings() error = %v", err)
+	}
+	if len(weightings) != 1 {
+		t.Fatalf("len(weightings) = %d, want 1", len(weightings))
+	}
+	if weightings[0].Country != "Japan" {
+		t.Fatalf("weightings[0].Country = %q, want Japan", weightings[0].Country)
+	}
+}

@@ -31,6 +31,12 @@ type ETFSectorWeighting struct {
 	WeightPercentage float64 `json:"weightPercentage"`
 }
 
+// ETFCountryWeighting is one country allocation row returned by FMP for an ETF or fund.
+type ETFCountryWeighting struct {
+	Country          string `json:"country"`
+	WeightPercentage string `json:"weightPercentage"`
+}
+
 // ETFHoldings returns holdings for an ETF symbol.
 func (c *Client) ETFHoldings(ctx context.Context, symbol string) ([]ETFHolding, error) {
 	symbol = strings.ToUpper(strings.TrimSpace(symbol))
@@ -54,6 +60,20 @@ func (c *Client) ETFSectorWeightings(ctx context.Context, symbol string) ([]ETFS
 
 	var weightings []ETFSectorWeighting
 	if err := c.get(ctx, "/etf/sector-weightings", url.Values{"symbol": []string{symbol}}, &weightings); err != nil {
+		return nil, err
+	}
+	return weightings, nil
+}
+
+// ETFCountryWeightings returns country allocation weights for an ETF or fund symbol.
+func (c *Client) ETFCountryWeightings(ctx context.Context, symbol string) ([]ETFCountryWeighting, error) {
+	symbol = strings.ToUpper(strings.TrimSpace(symbol))
+	if symbol == "" {
+		return nil, fmt.Errorf("symbol is required")
+	}
+
+	var weightings []ETFCountryWeighting
+	if err := c.get(ctx, "/etf/country-weightings", url.Values{"symbol": []string{symbol}}, &weightings); err != nil {
 		return nil, err
 	}
 	return weightings, nil
