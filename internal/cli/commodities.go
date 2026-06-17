@@ -18,6 +18,8 @@ func runCommodities(ctx context.Context, args []string, stdout, stderr io.Writer
 	case "-h", "--help", "help":
 		writeCommoditiesHelp(stdout)
 		return 0
+	case "history":
+		return runDomainHistory(ctx, args[1:], stdout, stderr, getenv, "commodities", writeCommoditiesHistoryHelp, nil)
 	case "quote", "quotes":
 		return runDomainQuote(ctx, args[1:], stdout, stderr, getenv, "commodities", writeCommoditiesQuoteHelp, commodityQuotes)
 	default:
@@ -38,6 +40,7 @@ Usage:
   stonk commodities <command> [flags]
 
 Commands:
+  history Fetch historical end-of-day commodity prices
   quote   Fetch one or more commodity quotes
   quotes  Alias for quote
 `)
@@ -53,5 +56,20 @@ Usage:
 Flags:
   --json  Write JSON output
   --csv   Write CSV output
+`)
+}
+
+func writeCommoditiesHistoryHelp(w io.Writer) {
+	fmt.Fprint(w, `Fetch historical end-of-day commodity prices.
+
+Usage:
+  stonk commodities history <symbol> [flags]
+
+Flags:
+  --from <date>  Start date in YYYY-MM-DD format
+  --to <date>    End date in YYYY-MM-DD format
+  --limit <n>    Maximum rows to print
+  --json         Write JSON output
+  --csv          Write CSV output
 `)
 }

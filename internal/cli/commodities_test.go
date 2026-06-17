@@ -35,3 +35,16 @@ func TestRunCommoditiesQuoteMissingKey(t *testing.T) {
 		t.Fatalf("stderr = %q, want missing key error", stderr.String())
 	}
 }
+
+func TestRunCommoditiesHistoryMissingKey(t *testing.T) {
+	var stdout, stderr bytes.Buffer
+
+	code := runCommodities(context.Background(), []string{"history", "GCUSD"}, &stdout, &stderr, func(string) string { return "" })
+
+	if code != 1 {
+		t.Fatalf("runCommodities() code = %d, want 1", code)
+	}
+	if !strings.Contains(stderr.String(), "FMP_API_KEY is not configured") {
+		t.Fatalf("stderr = %q, want missing key error", stderr.String())
+	}
+}
