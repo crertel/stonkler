@@ -45,6 +45,43 @@ func TestStockQuotesUsesBatchEndpoint(t *testing.T) {
 	}
 }
 
+func TestStockRatiosTTMUsesStableEndpoint(t *testing.T) {
+	transport := roundTripFunc(func(r *http.Request) (*http.Response, error) {
+		if got := r.Header.Get("apikey"); got != "secret-value" {
+			t.Fatalf("apikey header = %q, want secret-value", got)
+		}
+		if got := r.URL.Query().Get("apikey"); got != "" {
+			t.Fatalf("apikey query = %q, want empty", got)
+		}
+		if got := r.URL.Path; got != "/ratios-ttm" {
+			t.Fatalf("path = %q, want /ratios-ttm", got)
+		}
+		if got := r.URL.Query().Get("symbol"); got != "AAPL" {
+			t.Fatalf("symbol query = %q, want AAPL", got)
+		}
+
+		return &http.Response{
+			StatusCode: http.StatusOK,
+			Header:     make(http.Header),
+			Body:       io.NopCloser(strings.NewReader(`[{"symbol":"AAPL","netProfitMarginTTM":0.27}]`)),
+		}, nil
+	})
+
+	client := NewClient("secret-value", &http.Client{Transport: transport})
+	client.baseURL = "https://example.test"
+
+	ratios, err := client.StockRatiosTTM(context.Background(), "aapl")
+	if err != nil {
+		t.Fatalf("StockRatiosTTM() error = %v", err)
+	}
+	if len(ratios) != 1 {
+		t.Fatalf("len(ratios) = %d, want 1", len(ratios))
+	}
+	if ratios[0]["symbol"] != "AAPL" {
+		t.Fatalf("ratios[0][symbol] = %q, want AAPL", ratios[0]["symbol"])
+	}
+}
+
 func TestBatchQuotesHandlesNullMarketCapAndChangeFieldVariants(t *testing.T) {
 	transport := roundTripFunc(func(r *http.Request) (*http.Response, error) {
 		return &http.Response{

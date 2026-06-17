@@ -24,6 +24,9 @@ type Quote struct {
 // StockQuote is kept as the stock-domain name for shared quote data.
 type StockQuote = Quote
 
+// StockRatioRow is one raw ratio row returned by FMP.
+type StockRatioRow map[string]any
+
 // UnmarshalJSON accepts both stable and v3 quote field variants.
 func (q *Quote) UnmarshalJSON(data []byte) error {
 	var raw struct {
@@ -60,6 +63,20 @@ func (q *Quote) UnmarshalJSON(data []byte) error {
 // StockQuotes returns current quote data for one or more stock symbols.
 func (c *Client) StockQuotes(ctx context.Context, symbols []string) ([]StockQuote, error) {
 	return c.BatchQuotes(ctx, symbols)
+}
+
+// StockRatiosTTM returns trailing-twelve-month stock ratios for a symbol.
+func (c *Client) StockRatiosTTM(ctx context.Context, symbol string) ([]StockRatioRow, error) {
+	symbol = strings.ToUpper(strings.TrimSpace(symbol))
+	if symbol == "" {
+		return nil, fmt.Errorf("symbol is required")
+	}
+
+	var ratios []StockRatioRow
+	if err := c.get(ctx, "/ratios-ttm", url.Values{"symbol": []string{symbol}}, &ratios); err != nil {
+		return nil, err
+	}
+	return ratios, nil
 }
 
 // BatchQuotes returns current quote data for symbols supported by the stable batch quote endpoint.

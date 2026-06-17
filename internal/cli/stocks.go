@@ -30,6 +30,8 @@ func runStocks(ctx context.Context, args []string, stdout, stderr io.Writer, get
 		return runStocksProfile(ctx, args[1:], stdout, stderr, getenv)
 	case "quote", "quotes":
 		return runStocksQuote(ctx, args[1:], stdout, stderr, getenv)
+	case "ratios":
+		return runStocksRatios(ctx, args[1:], stdout, stderr, getenv)
 	case "statements":
 		return runStocksStatements(ctx, args[1:], stdout, stderr, getenv)
 	case "watch":
@@ -91,6 +93,7 @@ Commands:
   profile Fetch company profile data
   quote   Fetch one or more stock quotes
   quotes  Alias for quote
+  ratios  Fetch trailing-twelve-month valuation and operating ratios
   statements Fetch income, balance sheet, or cash flow statements
   watch   Refresh stock quotes in a terminal view
 `)
