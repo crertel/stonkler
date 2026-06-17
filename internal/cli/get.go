@@ -39,7 +39,7 @@ func runGet(ctx context.Context, args []string, stdout, stderr io.Writer, getenv
 	case "forex-history":
 		return runDomainHistory(ctx, args[1:], stdout, stderr, getenv, "forex", writeForexHistoryHelp, nil)
 	case "history":
-		return runStocksHistory(ctx, args[1:], stdout, stderr, getenv)
+		return runGetHistory(ctx, args[1:], stdout, stderr, getenv)
 	case "holdings":
 		return runFundsHoldings(ctx, args[1:], stdout, stderr, getenv)
 	case "index", "indexes":
