@@ -37,6 +37,8 @@ func Run(ctx context.Context, args []string, stdout, stderr io.Writer) int {
 		return runCrypto(ctx, args[1:], stdout, stderr, os.Getenv)
 	case "forex":
 		return runForex(ctx, args[1:], stdout, stderr, os.Getenv)
+	case "commodities":
+		return runCommodities(ctx, args[1:], stdout, stderr, os.Getenv)
 	default:
 		fmt.Fprintf(stderr, "unknown command %q\n\n", args[0])
 		writeRootHelp(stderr)
