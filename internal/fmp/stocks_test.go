@@ -193,6 +193,46 @@ func TestStockRatingSnapshotUsesStableEndpoint(t *testing.T) {
 	}
 }
 
+func TestInsiderTradesUsesStableEndpoint(t *testing.T) {
+	transport := roundTripFunc(func(r *http.Request) (*http.Response, error) {
+		if got := r.Header.Get("apikey"); got != "secret-value" {
+			t.Fatalf("apikey header = %q, want secret-value", got)
+		}
+		if got := r.URL.Query().Get("apikey"); got != "" {
+			t.Fatalf("apikey query = %q, want empty", got)
+		}
+		if got := r.URL.Path; got != "/insider-trading" {
+			t.Fatalf("path = %q, want /insider-trading", got)
+		}
+		if got := r.URL.Query().Get("symbol"); got != "WEN" {
+			t.Fatalf("symbol query = %q, want WEN", got)
+		}
+		if got := r.URL.Query().Get("limit"); got != "3" {
+			t.Fatalf("limit query = %q, want 3", got)
+		}
+
+		return &http.Response{
+			StatusCode: http.StatusOK,
+			Header:     make(http.Header),
+			Body:       io.NopCloser(strings.NewReader(`[{"symbol":"WEN","filingDate":"2026-06-17","transactionDate":"2026-06-15","reportingCik":"0002139907","companyCik":"0000030697","transactionType":"A-Award","securitiesOwned":11036,"reportingName":"Kale Aaron M.","typeOfOwner":"officer: Chief Accounting Officer","acquisitionOrDisposition":"A","directOrIndirect":"D","formType":"4","securitiesTransacted":35,"price":0,"securityName":"Restricted Stock Units","url":"https://www.sec.gov/Archives/edgar/data/30697/example-index.htm"}]`)),
+		}, nil
+	})
+
+	client := NewClient("secret-value", &http.Client{Transport: transport})
+	client.v4BaseURL = "https://example.test"
+
+	trades, err := client.InsiderTrades(context.Background(), "wen", 3)
+	if err != nil {
+		t.Fatalf("InsiderTrades() error = %v", err)
+	}
+	if len(trades) != 1 {
+		t.Fatalf("len(trades) = %d, want 1", len(trades))
+	}
+	if trades[0].ReportingName != "Kale Aaron M." {
+		t.Fatalf("trades[0].ReportingName = %q, want Kale Aaron M.", trades[0].ReportingName)
+	}
+}
+
 func TestBatchQuotesHandlesNullMarketCapAndChangeFieldVariants(t *testing.T) {
 	transport := roundTripFunc(func(r *http.Request) (*http.Response, error) {
 		return &http.Response{

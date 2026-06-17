@@ -51,6 +51,77 @@ type StockRatingSnapshot struct {
 	PriceToBookScore        float64 `json:"priceToBookScore"`
 }
 
+// InsiderTrade is one insider transaction row returned by FMP.
+type InsiderTrade struct {
+	Symbol                   string  `json:"symbol"`
+	FilingDate               string  `json:"filingDate"`
+	TransactionDate          string  `json:"transactionDate"`
+	ReportingCIK             string  `json:"reportingCik"`
+	CompanyCIK               string  `json:"companyCik"`
+	TransactionType          string  `json:"transactionType"`
+	SecuritiesOwned          float64 `json:"securitiesOwned"`
+	ReportingName            string  `json:"reportingName"`
+	TypeOfOwner              string  `json:"typeOfOwner"`
+	AcquisitionOrDisposition string  `json:"acquisitionOrDisposition"`
+	DirectOrIndirect         string  `json:"directOrIndirect"`
+	FormType                 string  `json:"formType"`
+	SecuritiesTransacted     float64 `json:"securitiesTransacted"`
+	Price                    float64 `json:"price"`
+	SecurityName             string  `json:"securityName"`
+	URL                      string  `json:"url"`
+}
+
+// UnmarshalJSON accepts both stable and v4 insider field variants.
+func (t *InsiderTrade) UnmarshalJSON(data []byte) error {
+	var raw struct {
+		Symbol                           string  `json:"symbol"`
+		FilingDate                       string  `json:"filingDate"`
+		TransactionDate                  string  `json:"transactionDate"`
+		ReportingCIK                     string  `json:"reportingCik"`
+		CompanyCIK                       string  `json:"companyCik"`
+		TransactionType                  string  `json:"transactionType"`
+		SecuritiesOwned                  float64 `json:"securitiesOwned"`
+		ReportingName                    string  `json:"reportingName"`
+		TypeOfOwner                      string  `json:"typeOfOwner"`
+		AcquisitionOrDisposition         string  `json:"acquisitionOrDisposition"`
+		MisspelledAcquisitionDisposition string  `json:"acquistionOrDisposition"`
+		DirectOrIndirect                 string  `json:"directOrIndirect"`
+		FormType                         string  `json:"formType"`
+		SecuritiesTransacted             float64 `json:"securitiesTransacted"`
+		Price                            float64 `json:"price"`
+		SecurityName                     string  `json:"securityName"`
+		URL                              string  `json:"url"`
+		Link                             string  `json:"link"`
+	}
+	if err := json.Unmarshal(data, &raw); err != nil {
+		return err
+	}
+
+	t.Symbol = raw.Symbol
+	t.FilingDate = raw.FilingDate
+	t.TransactionDate = raw.TransactionDate
+	t.ReportingCIK = raw.ReportingCIK
+	t.CompanyCIK = raw.CompanyCIK
+	t.TransactionType = raw.TransactionType
+	t.SecuritiesOwned = raw.SecuritiesOwned
+	t.ReportingName = raw.ReportingName
+	t.TypeOfOwner = raw.TypeOfOwner
+	t.AcquisitionOrDisposition = raw.AcquisitionOrDisposition
+	if t.AcquisitionOrDisposition == "" {
+		t.AcquisitionOrDisposition = raw.MisspelledAcquisitionDisposition
+	}
+	t.DirectOrIndirect = raw.DirectOrIndirect
+	t.FormType = raw.FormType
+	t.SecuritiesTransacted = raw.SecuritiesTransacted
+	t.Price = raw.Price
+	t.SecurityName = raw.SecurityName
+	t.URL = raw.URL
+	if t.URL == "" {
+		t.URL = raw.Link
+	}
+	return nil
+}
+
 // UnmarshalJSON accepts both stable and v3 quote field variants.
 func (q *Quote) UnmarshalJSON(data []byte) error {
 	var raw struct {
@@ -143,6 +214,31 @@ func (c *Client) StockRatingSnapshot(ctx context.Context, symbol string) ([]Stoc
 		return nil, err
 	}
 	return ratings, nil
+}
+
+// InsiderTrades returns insider transactions for a stock symbol.
+func (c *Client) InsiderTrades(ctx context.Context, symbol string, limit int) ([]InsiderTrade, error) {
+	symbol = strings.ToUpper(strings.TrimSpace(symbol))
+	if symbol == "" {
+		return nil, fmt.Errorf("symbol is required")
+	}
+	if limit < 0 {
+		return nil, fmt.Errorf("limit must be non-negative")
+	}
+
+	query := url.Values{"symbol": []string{symbol}}
+	if limit > 0 {
+		query.Set("limit", fmt.Sprint(limit))
+	}
+
+	var trades []InsiderTrade
+	if err := c.getV4(ctx, "/insider-trading", query, &trades); err != nil {
+		return nil, err
+	}
+	if limit > 0 && len(trades) > limit {
+		trades = trades[:limit]
+	}
+	return trades, nil
 }
 
 // BatchQuotes returns current quote data for symbols supported by the stable batch quote endpoint.

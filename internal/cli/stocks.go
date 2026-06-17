@@ -28,6 +28,8 @@ func runStocks(ctx context.Context, args []string, stdout, stderr io.Writer, get
 		return runStocksAnalyst(ctx, args[1:], stdout, stderr, getenv)
 	case "history":
 		return runStocksHistory(ctx, args[1:], stdout, stderr, getenv)
+	case "insiders":
+		return runStocksInsiders(ctx, args[1:], stdout, stderr, getenv)
 	case "metrics":
 		return runStocksMetrics(ctx, args[1:], stdout, stderr, getenv)
 	case "peers":
@@ -97,6 +99,7 @@ Usage:
 Commands:
   analyst Fetch analyst rating snapshot scores
   history Fetch historical end-of-day prices
+  insiders Fetch insider transactions
   metrics Fetch trailing-twelve-month key metrics
   peers   Fetch peer companies
   profile Fetch company profile data
