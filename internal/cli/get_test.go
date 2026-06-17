@@ -127,3 +127,30 @@ func TestRunGetCrossAssetQuoteValidation(t *testing.T) {
 		})
 	}
 }
+
+func TestRunGetCrossAssetHistoryValidation(t *testing.T) {
+	tests := []struct {
+		name string
+		args []string
+	}{
+		{name: "crypto-history", args: []string{"crypto-history", "BTCUSD"}},
+		{name: "forex-history", args: []string{"forex-history", "EURUSD"}},
+		{name: "commodity-history", args: []string{"commodity-history", "GCUSD"}},
+		{name: "index-history", args: []string{"index-history", "GSPC"}},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			var stdout, stderr bytes.Buffer
+
+			code := runGet(context.Background(), tt.args, &stdout, &stderr, func(string) string { return "" })
+
+			if code != 1 {
+				t.Fatalf("runGet() code = %d, want 1", code)
+			}
+			if !strings.Contains(stderr.String(), "FMP_API_KEY is not configured") {
+				t.Fatalf("stderr = %q, want missing FMP key error", stderr.String())
+			}
+		})
+	}
+}

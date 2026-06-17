@@ -20,18 +20,26 @@ func runGet(ctx context.Context, args []string, stdout, stderr io.Writer, getenv
 		return runStocksProfile(ctx, args[1:], stdout, stderr, getenv)
 	case "commodity", "commodities":
 		return runDomainQuote(ctx, args[1:], stdout, stderr, getenv, "commodities", writeCommoditiesQuoteHelp, commodityQuotes)
+	case "commodity-history", "commodities-history":
+		return runDomainHistory(ctx, args[1:], stdout, stderr, getenv, "commodities", writeCommoditiesHistoryHelp, nil)
 	case "crypto":
 		return runDomainQuote(ctx, args[1:], stdout, stderr, getenv, "crypto", writeCryptoQuoteHelp, cryptoQuotes)
+	case "crypto-history":
+		return runDomainHistory(ctx, args[1:], stdout, stderr, getenv, "crypto", writeCryptoHistoryHelp, nil)
 	case "etf", "fund", "fund-info":
 		return runFundsInfo(ctx, args[1:], stdout, stderr, getenv)
 	case "forex":
 		return runDomainQuote(ctx, args[1:], stdout, stderr, getenv, "forex", writeForexQuoteHelp, forexQuotes)
+	case "forex-history":
+		return runDomainHistory(ctx, args[1:], stdout, stderr, getenv, "forex", writeForexHistoryHelp, nil)
 	case "history":
 		return runStocksHistory(ctx, args[1:], stdout, stderr, getenv)
 	case "holdings":
 		return runFundsHoldings(ctx, args[1:], stdout, stderr, getenv)
 	case "index", "indexes":
 		return runDomainQuote(ctx, args[1:], stdout, stderr, getenv, "indexes", writeIndexesQuoteHelp, indexQuotes)
+	case "index-history", "indexes-history":
+		return runDomainHistory(ctx, args[1:], stdout, stderr, getenv, "indexes", writeIndexesHistoryHelp, normalizeIndexSymbol)
 	case "quote", "quotes":
 		return runStocksQuote(ctx, args[1:], stdout, stderr, getenv)
 	case "statement", "statements":
@@ -52,12 +60,16 @@ Usage:
 Commands:
   company Fetch company profile data, inferring the stock domain for now
   commodity Fetch commodity quotes
+  commodity-history Fetch commodity history
   crypto  Fetch cryptocurrency quotes
+  crypto-history Fetch cryptocurrency history
   fund    Fetch ETF or fund profile information
   forex   Fetch foreign exchange quotes
+  forex-history Fetch foreign exchange history
   history Fetch historical prices, inferring the stock domain for now
   holdings Fetch ETF holdings, inferring the funds domain for now
   index   Fetch index quotes
+  index-history Fetch index history
   profile Alias for company
   quote   Fetch one or more quotes, inferring the stock domain for now
   quotes  Alias for quote
