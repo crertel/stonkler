@@ -42,6 +42,8 @@ func runGet(ctx context.Context, args []string, stdout, stderr io.Writer, getenv
 		return runDomainHistory(ctx, args[1:], stdout, stderr, getenv, "indexes", writeIndexesHistoryHelp, normalizeIndexSymbol)
 	case "quote", "quotes":
 		return runStocksQuote(ctx, args[1:], stdout, stderr, getenv)
+	case "ratios":
+		return runStocksRatios(ctx, args[1:], stdout, stderr, getenv)
 	case "statement", "statements":
 		return runStocksStatements(ctx, args[1:], stdout, stderr, getenv)
 	default:
@@ -73,6 +75,7 @@ Commands:
   profile Alias for company
   quote   Fetch one or more quotes, inferring the stock domain for now
   quotes  Alias for quote
+  ratios  Fetch stock ratios, inferring the stock domain for now
   statements Fetch financial statements, inferring the stock domain for now
 `)
 }
