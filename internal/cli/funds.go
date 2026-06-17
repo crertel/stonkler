@@ -22,6 +22,8 @@ func runFunds(ctx context.Context, args []string, stdout, stderr io.Writer, gete
 		return runFundsHoldings(ctx, args[1:], stdout, stderr, getenv)
 	case "info":
 		return runFundsInfo(ctx, args[1:], stdout, stderr, getenv)
+	case "sector-weightings":
+		return runFundsSectorWeightings(ctx, args[1:], stdout, stderr, getenv)
 	case "watch":
 		return runFundsWatch(ctx, args[1:], stdout, stderr, getenv)
 	default:
@@ -38,9 +40,10 @@ Usage:
   stonk funds <command> [flags]
 
 Commands:
-  holdings Fetch ETF holdings
-  info     Fetch ETF or fund profile information
-  watch    Refresh ETF or fund quotes in a terminal view
+  holdings          Fetch ETF holdings
+  info              Fetch ETF or fund profile information
+  sector-weightings Fetch ETF or fund sector allocation weights
+  watch             Refresh ETF or fund quotes in a terminal view
 `)
 }
 
