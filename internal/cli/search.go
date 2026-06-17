@@ -4,7 +4,6 @@ import (
 	"context"
 	"encoding/csv"
 	"encoding/json"
-	"flag"
 	"fmt"
 	"io"
 	"net/http"
@@ -23,7 +22,7 @@ func runSearch(ctx context.Context, args []string, stdout, stderr io.Writer, get
 		return 0
 	}
 
-	format, remaining, ok := parseOutputFlags("search", args, stderr)
+	format, remaining, ok := parseOutputFlags(args, stderr)
 	if !ok {
 		return 2
 	}
@@ -66,30 +65,6 @@ func runSearch(ctx context.Context, args []string, stdout, stderr io.Writer, get
 		return 1
 	}
 	return 0
-}
-
-func parseOutputFlags(name string, args []string, stderr io.Writer) (outputFormat, []string, bool) {
-	var jsonOut bool
-	var csvOut bool
-	flags := flag.NewFlagSet(name, flag.ContinueOnError)
-	flags.SetOutput(stderr)
-	flags.BoolVar(&jsonOut, "json", false, "write JSON output")
-	flags.BoolVar(&csvOut, "csv", false, "write CSV output")
-
-	if err := flags.Parse(args); err != nil {
-		return outputTable, nil, false
-	}
-	if jsonOut && csvOut {
-		fmt.Fprintln(stderr, "--json and --csv are mutually exclusive")
-		return outputTable, nil, false
-	}
-	if jsonOut {
-		return outputJSON, flags.Args(), true
-	}
-	if csvOut {
-		return outputCSV, flags.Args(), true
-	}
-	return outputTable, flags.Args(), true
 }
 
 func runSearchQuery(ctx context.Context, client *fmp.Client, mode string, query string) ([]fmp.SearchResult, error) {

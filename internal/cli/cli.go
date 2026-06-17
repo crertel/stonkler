@@ -27,6 +27,8 @@ func Run(ctx context.Context, args []string, stdout, stderr io.Writer) int {
 		return runConfig(args[1:], stdout, stderr, os.Getenv)
 	case "search":
 		return runSearch(ctx, args[1:], stdout, stderr, os.Getenv)
+	case "stocks":
+		return runStocks(ctx, args[1:], stdout, stderr, os.Getenv)
 	default:
 		fmt.Fprintf(stderr, "unknown command %q\n\n", args[0])
 		writeRootHelp(stderr)
