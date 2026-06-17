@@ -21,6 +21,9 @@ func runSearch(ctx context.Context, args []string, stdout, stderr io.Writer, get
 		writeSearchHelp(stdout)
 		return 0
 	}
+	if args[0] == "screener" {
+		return runSearchScreener(ctx, args[1:], stdout, stderr, getenv)
+	}
 
 	format, remaining, ok := parseOutputFlags(args, stderr)
 	if !ok {
@@ -93,10 +96,17 @@ Usage:
   stonk search [flags] symbol <query>
   stonk search [flags] cik <cik>
   stonk search [flags] isin <isin>
+  stonk search screener [flags]
 
 Flags:
   --json  Write JSON output
   --csv   Write CSV output
+
+Screener Flags:
+  --sector <sector>           Filter by sector
+  --country <country>         Filter by country code
+  --market-cap-min <amount>   Minimum market cap, such as 100B
+  --limit <n>                 Maximum rows to request
 `)
 }
 
