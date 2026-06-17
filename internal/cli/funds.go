@@ -18,6 +18,8 @@ func runFunds(ctx context.Context, args []string, stdout, stderr io.Writer, gete
 		return 0
 	case "holdings":
 		return runFundsHoldings(ctx, args[1:], stdout, stderr, getenv)
+	case "info":
+		return runFundsInfo(ctx, args[1:], stdout, stderr, getenv)
 	default:
 		fmt.Fprintf(stderr, "unknown funds command %q\n\n", args[0])
 		writeFundsHelp(stderr)
@@ -33,6 +35,7 @@ Usage:
 
 Commands:
   holdings Fetch ETF holdings
+  info     Fetch ETF or fund profile information
 `)
 }
 
@@ -46,5 +49,17 @@ Flags:
   --limit <n>  Maximum holdings to print
   --json       Write JSON output
   --csv        Write CSV output
+`)
+}
+
+func writeFundsInfoHelp(w io.Writer) {
+	fmt.Fprint(w, `Fetch ETF or fund profile information.
+
+Usage:
+  stonk funds info <symbol> [flags]
+
+Flags:
+  --json  Write JSON output
+  --csv   Write CSV output
 `)
 }

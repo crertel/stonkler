@@ -7,6 +7,11 @@ import (
 	"strings"
 )
 
+// FundProfile returns profile data for an ETF or fund symbol.
+func (c *Client) FundProfile(ctx context.Context, symbol string) (StockProfile, error) {
+	return c.StockProfile(ctx, symbol)
+}
+
 // ETFHolding is one holding row returned by FMP for an ETF.
 type ETFHolding struct {
 	Asset            string  `json:"asset"`
