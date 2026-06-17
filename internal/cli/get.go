@@ -52,6 +52,8 @@ func runGet(ctx context.Context, args []string, stdout, stderr io.Writer, getenv
 		return runStocksQuote(ctx, args[1:], stdout, stderr, getenv)
 	case "ratios":
 		return runStocksRatios(ctx, args[1:], stdout, stderr, getenv)
+	case "sec":
+		return runStocksSEC(ctx, args[1:], stdout, stderr, getenv)
 	case "statement", "statements":
 		return runStocksStatements(ctx, args[1:], stdout, stderr, getenv)
 	default:
@@ -88,6 +90,7 @@ Commands:
   quote   Fetch one or more quotes, inferring the stock domain for now
   quotes  Alias for quote
   ratios  Fetch stock ratios, inferring the stock domain for now
+  sec     Fetch stock SEC filings, inferring the stock domain for now
   statements Fetch financial statements, inferring the stock domain for now
 `)
 }
