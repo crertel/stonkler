@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"io"
+	"os"
 )
 
 const version = "dev"
@@ -22,6 +23,8 @@ func Run(ctx context.Context, args []string, stdout, stderr io.Writer) int {
 	case "version", "--version":
 		fmt.Fprintf(stdout, "stonk %s\n", version)
 		return 0
+	case "config":
+		return runConfig(args[1:], stdout, stderr, os.Getenv)
 	default:
 		fmt.Fprintf(stderr, "unknown command %q\n\n", args[0])
 		writeRootHelp(stderr)
