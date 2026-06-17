@@ -41,7 +41,7 @@ func runGet(ctx context.Context, args []string, stdout, stderr io.Writer, getenv
 	case "history":
 		return runGetHistory(ctx, args[1:], stdout, stderr, getenv)
 	case "holdings":
-		return runFundsHoldings(ctx, args[1:], stdout, stderr, getenv)
+		return runGetHoldings(ctx, args[1:], stdout, stderr, getenv)
 	case "index", "indexes":
 		return runDomainQuote(ctx, args[1:], stdout, stderr, getenv, "indexes", writeIndexesQuoteHelp, indexQuotes)
 	case "index-history", "indexes-history":
