@@ -49,7 +49,7 @@ func runGet(ctx context.Context, args []string, stdout, stderr io.Writer, getenv
 	case "insiders":
 		return runStocksInsiders(ctx, args[1:], stdout, stderr, getenv)
 	case "metrics":
-		return runStocksMetrics(ctx, args[1:], stdout, stderr, getenv)
+		return runGetMetrics(ctx, args[1:], stdout, stderr, getenv)
 	case "peers":
 		return runStocksPeers(ctx, args[1:], stdout, stderr, getenv)
 	case "quote", "quotes":
