@@ -33,7 +33,7 @@ func runGet(ctx context.Context, args []string, stdout, stderr io.Writer, getenv
 	case "exposure":
 		return runFundsExposure(ctx, args[1:], stdout, stderr, getenv)
 	case "etf", "fund", "fund-info":
-		return runFundsInfo(ctx, args[1:], stdout, stderr, getenv)
+		return runGetFundInfo(ctx, args[1:], stdout, stderr, getenv)
 	case "forex":
 		return runDomainQuote(ctx, args[1:], stdout, stderr, getenv, "forex", writeForexQuoteHelp, forexQuotes)
 	case "forex-history":

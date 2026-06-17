@@ -74,7 +74,7 @@ Flags:
 
 func getHoldingsSymbol(ctx context.Context, client getHoldingsClient, query string) (string, error) {
 	if !shouldResolveGetFundNameQuery(query) {
-		return strings.ToUpper(strings.TrimSpace(query)), nil
+		return normalizeGetFundTicker(query), nil
 	}
 
 	results, err := client.SearchName(ctx, query)
@@ -97,4 +97,8 @@ func shouldResolveGetFundNameQuery(query string) bool {
 		return true
 	}
 	return len(trimmed) > 5 && trimmed != strings.ToUpper(trimmed)
+}
+
+func normalizeGetFundTicker(query string) string {
+	return strings.ToUpper(strings.TrimSpace(query))
 }
