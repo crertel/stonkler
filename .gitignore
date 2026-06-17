@@ -1,0 +1,9 @@
+.direnv/
+result
+result-*
+
+# Go
+bin/
+dist/
+*.test
+coverage.out
