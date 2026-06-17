@@ -4,12 +4,14 @@ import (
 	"bytes"
 	"testing"
 	"time"
+
+	"github.com/crertel/stonkler/internal/fmp"
 )
 
 func TestParseWatchOptions(t *testing.T) {
 	var stderr bytes.Buffer
 
-	options, ok := parseWatchOptions([]string{"AAPL", "--interval", "2s", "MSFT", "--count", "3", "--jsonl"}, &stderr)
+	options, ok := parseWatchOptions([]string{"AAPL", "--interval", "2s", "MSFT", "--count", "3", "--sort", "-change-percent", "--jsonl"}, &stderr)
 
 	if !ok {
 		t.Fatalf("parseWatchOptions() ok = false, stderr = %q", stderr.String())
@@ -22,6 +24,9 @@ func TestParseWatchOptions(t *testing.T) {
 	}
 	if !options.jsonl {
 		t.Fatalf("jsonl = false, want true")
+	}
+	if options.sort != "-change-percent" {
+		t.Fatalf("sort = %q, want -change-percent", options.sort)
 	}
 	if got := len(options.symbols); got != 2 {
 		t.Fatalf("len(symbols) = %d, want 2", got)
@@ -38,5 +43,29 @@ func TestParseWatchOptionsRejectsInvalidInterval(t *testing.T) {
 
 	if ok {
 		t.Fatalf("parseWatchOptions() ok = true, want false")
+	}
+}
+
+func TestParseWatchOptionsRejectsInvalidSort(t *testing.T) {
+	var stderr bytes.Buffer
+
+	_, ok := parseWatchOptions([]string{"AAPL", "--sort", "market-cap"}, &stderr)
+
+	if ok {
+		t.Fatalf("parseWatchOptions() ok = true, want false")
+	}
+}
+
+func TestSortWatchQuotes(t *testing.T) {
+	quotes := []fmp.Quote{
+		{Symbol: "MSFT", ChangePercentage: -1.2, Volume: 20},
+		{Symbol: "AAPL", ChangePercentage: 0.8, Volume: 30},
+		{Symbol: "NVDA", ChangePercentage: 2.1, Volume: 10},
+	}
+
+	sortWatchQuotes(quotes, "-change-percent")
+
+	if quotes[0].Symbol != "NVDA" || quotes[1].Symbol != "AAPL" || quotes[2].Symbol != "MSFT" {
+		t.Fatalf("sorted symbols = %s/%s/%s, want NVDA/AAPL/MSFT", quotes[0].Symbol, quotes[1].Symbol, quotes[2].Symbol)
 	}
 }

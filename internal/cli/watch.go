@@ -6,7 +6,9 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"sort"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/crertel/stonkler/internal/fmp"
@@ -16,6 +18,7 @@ type watchOptions struct {
 	interval time.Duration
 	count    int
 	jsonl    bool
+	sort     string
 	symbols  []string
 }
 
@@ -66,6 +69,16 @@ func parseWatchOptions(args []string, stderr io.Writer) (watchOptions, bool) {
 		switch arg {
 		case "--jsonl":
 			options.jsonl = true
+		case "--sort":
+			value, ok := nextFlagValue(args, &i, "--sort", stderr)
+			if !ok {
+				return watchOptions{}, false
+			}
+			if !validWatchSort(value) {
+				fmt.Fprintf(stderr, "invalid --sort value %q; use symbol, price, change, change-percent, or volume\n", value)
+				return watchOptions{}, false
+			}
+			options.sort = value
 		case "--interval":
 			if i+1 >= len(args) {
 				fmt.Fprintln(stderr, "--interval requires a duration")
@@ -112,6 +125,9 @@ func runQuoteWatchLoop(ctx context.Context, stdout, stderr io.Writer, client *fm
 
 		now := time.Now().Format(time.RFC3339)
 		quotes, err := fetch(ctx, client, options.symbols)
+		if err == nil {
+			sortWatchQuotes(quotes, options.sort)
+		}
 		if options.jsonl {
 			if writeStockWatchJSONL(stdout, now, quotes, err) != nil {
 				fmt.Fprintln(stderr, "failed to write output")
@@ -139,6 +155,49 @@ func runQuoteWatchLoop(ctx context.Context, stdout, stderr io.Writer, client *fm
 			return 130
 		case <-time.After(options.interval):
 		}
+	}
+}
+
+func validWatchSort(value string) bool {
+	field := strings.TrimPrefix(value, "-")
+	switch field {
+	case "symbol", "price", "change", "change-percent", "volume":
+		return true
+	default:
+		return false
+	}
+}
+
+func sortWatchQuotes(quotes []fmp.Quote, sortSpec string) {
+	if sortSpec == "" {
+		return
+	}
+
+	descending := strings.HasPrefix(sortSpec, "-")
+	field := strings.TrimPrefix(sortSpec, "-")
+	sort.SliceStable(quotes, func(i, j int) bool {
+		less := watchQuoteLess(quotes[i], quotes[j], field)
+		if descending {
+			return watchQuoteLess(quotes[j], quotes[i], field)
+		}
+		return less
+	})
+}
+
+func watchQuoteLess(left fmp.Quote, right fmp.Quote, field string) bool {
+	switch field {
+	case "symbol":
+		return left.Symbol < right.Symbol
+	case "price":
+		return left.Price < right.Price
+	case "change":
+		return left.Change < right.Change
+	case "change-percent":
+		return left.ChangePercentage < right.ChangePercentage
+	case "volume":
+		return left.Volume < right.Volume
+	default:
+		return false
 	}
 }
 

@@ -99,6 +99,7 @@ Usage:
 Flags:
   --interval <duration>  Refresh interval, such as 5s or 1m
   --count <n>            Number of refreshes before exiting
+  --sort <field>         Sort by symbol, price, change, change-percent, or volume
   --jsonl                Write newline-delimited JSON updates
 `)
 }
