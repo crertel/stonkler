@@ -27,6 +27,9 @@ type StockQuote = Quote
 // StockRatioRow is one raw ratio row returned by FMP.
 type StockRatioRow map[string]any
 
+// StockMetricRow is one raw key metrics row returned by FMP.
+type StockMetricRow map[string]any
+
 // UnmarshalJSON accepts both stable and v3 quote field variants.
 func (q *Quote) UnmarshalJSON(data []byte) error {
 	var raw struct {
@@ -77,6 +80,20 @@ func (c *Client) StockRatiosTTM(ctx context.Context, symbol string) ([]StockRati
 		return nil, err
 	}
 	return ratios, nil
+}
+
+// StockKeyMetricsTTM returns trailing-twelve-month stock key metrics for a symbol.
+func (c *Client) StockKeyMetricsTTM(ctx context.Context, symbol string) ([]StockMetricRow, error) {
+	symbol = strings.ToUpper(strings.TrimSpace(symbol))
+	if symbol == "" {
+		return nil, fmt.Errorf("symbol is required")
+	}
+
+	var metrics []StockMetricRow
+	if err := c.get(ctx, "/key-metrics-ttm", url.Values{"symbol": []string{symbol}}, &metrics); err != nil {
+		return nil, err
+	}
+	return metrics, nil
 }
 
 // BatchQuotes returns current quote data for symbols supported by the stable batch quote endpoint.

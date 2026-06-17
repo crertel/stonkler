@@ -82,6 +82,43 @@ func TestStockRatiosTTMUsesStableEndpoint(t *testing.T) {
 	}
 }
 
+func TestStockKeyMetricsTTMUsesStableEndpoint(t *testing.T) {
+	transport := roundTripFunc(func(r *http.Request) (*http.Response, error) {
+		if got := r.Header.Get("apikey"); got != "secret-value" {
+			t.Fatalf("apikey header = %q, want secret-value", got)
+		}
+		if got := r.URL.Query().Get("apikey"); got != "" {
+			t.Fatalf("apikey query = %q, want empty", got)
+		}
+		if got := r.URL.Path; got != "/key-metrics-ttm" {
+			t.Fatalf("path = %q, want /key-metrics-ttm", got)
+		}
+		if got := r.URL.Query().Get("symbol"); got != "AAPL" {
+			t.Fatalf("symbol query = %q, want AAPL", got)
+		}
+
+		return &http.Response{
+			StatusCode: http.StatusOK,
+			Header:     make(http.Header),
+			Body:       io.NopCloser(strings.NewReader(`[{"symbol":"AAPL","marketCap":4346723008200}]`)),
+		}, nil
+	})
+
+	client := NewClient("secret-value", &http.Client{Transport: transport})
+	client.baseURL = "https://example.test"
+
+	metrics, err := client.StockKeyMetricsTTM(context.Background(), "aapl")
+	if err != nil {
+		t.Fatalf("StockKeyMetricsTTM() error = %v", err)
+	}
+	if len(metrics) != 1 {
+		t.Fatalf("len(metrics) = %d, want 1", len(metrics))
+	}
+	if metrics[0]["symbol"] != "AAPL" {
+		t.Fatalf("metrics[0][symbol] = %q, want AAPL", metrics[0]["symbol"])
+	}
+}
+
 func TestBatchQuotesHandlesNullMarketCapAndChangeFieldVariants(t *testing.T) {
 	transport := roundTripFunc(func(r *http.Request) (*http.Response, error) {
 		return &http.Response{
