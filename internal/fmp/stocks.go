@@ -30,6 +30,9 @@ type StockRatioRow map[string]any
 // StockMetricRow is one raw key metrics row returned by FMP.
 type StockMetricRow map[string]any
 
+// EarningsCallTranscript is one raw earnings call transcript row returned by FMP.
+type EarningsCallTranscript map[string]any
+
 // StockPeer is one peer company row returned by FMP.
 type StockPeer struct {
 	Symbol      string  `json:"symbol"`
@@ -197,6 +200,31 @@ func (c *Client) StockKeyMetricsTTM(ctx context.Context, symbol string) ([]Stock
 		return nil, err
 	}
 	return metrics, nil
+}
+
+// EarningsCallTranscript returns an earnings call transcript for a fiscal quarter.
+func (c *Client) EarningsCallTranscript(ctx context.Context, symbol string, year int, quarter int) ([]EarningsCallTranscript, error) {
+	symbol = strings.ToUpper(strings.TrimSpace(symbol))
+	if symbol == "" {
+		return nil, fmt.Errorf("symbol is required")
+	}
+	if year <= 0 {
+		return nil, fmt.Errorf("year is required")
+	}
+	if quarter < 1 || quarter > 4 {
+		return nil, fmt.Errorf("quarter must be between 1 and 4")
+	}
+
+	query := url.Values{}
+	query.Set("symbol", symbol)
+	query.Set("year", fmt.Sprint(year))
+	query.Set("quarter", fmt.Sprint(quarter))
+
+	var transcripts []EarningsCallTranscript
+	if err := c.get(ctx, "/earning-call-transcript", query, &transcripts); err != nil {
+		return nil, err
+	}
+	return transcripts, nil
 }
 
 // StockPeers returns peer companies for a stock symbol.

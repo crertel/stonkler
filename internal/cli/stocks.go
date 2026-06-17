@@ -44,6 +44,8 @@ func runStocks(ctx context.Context, args []string, stdout, stderr io.Writer, get
 		return runStocksSEC(ctx, args[1:], stdout, stderr, getenv)
 	case "statements":
 		return runStocksStatements(ctx, args[1:], stdout, stderr, getenv)
+	case "transcript":
+		return runStocksTranscript(ctx, args[1:], stdout, stderr, getenv)
 	case "watch":
 		return runStocksWatch(ctx, args[1:], stdout, stderr, getenv)
 	default:
@@ -110,6 +112,7 @@ Commands:
   ratios  Fetch trailing-twelve-month valuation and operating ratios
   sec     Fetch SEC filings
   statements Fetch income, balance sheet, or cash flow statements
+  transcript Fetch an earnings call transcript
   watch   Refresh stock quotes in a terminal view
 `)
 }

@@ -119,6 +119,49 @@ func TestStockKeyMetricsTTMUsesStableEndpoint(t *testing.T) {
 	}
 }
 
+func TestEarningsCallTranscriptUsesStableEndpoint(t *testing.T) {
+	transport := roundTripFunc(func(r *http.Request) (*http.Response, error) {
+		if got := r.Header.Get("apikey"); got != "secret-value" {
+			t.Fatalf("apikey header = %q, want secret-value", got)
+		}
+		if got := r.URL.Query().Get("apikey"); got != "" {
+			t.Fatalf("apikey query = %q, want empty", got)
+		}
+		if got := r.URL.Path; got != "/earning-call-transcript" {
+			t.Fatalf("path = %q, want /earning-call-transcript", got)
+		}
+		if got := r.URL.Query().Get("symbol"); got != "AAPL" {
+			t.Fatalf("symbol query = %q, want AAPL", got)
+		}
+		if got := r.URL.Query().Get("year"); got != "2026" {
+			t.Fatalf("year query = %q, want 2026", got)
+		}
+		if got := r.URL.Query().Get("quarter"); got != "1" {
+			t.Fatalf("quarter query = %q, want 1", got)
+		}
+
+		return &http.Response{
+			StatusCode: http.StatusOK,
+			Header:     make(http.Header),
+			Body:       io.NopCloser(strings.NewReader(`[{"symbol":"AAPL","year":2026,"quarter":1,"date":"2026-01-30","title":"Apple Q1 2026 Earnings Call","content":"Prepared remarks"}]`)),
+		}, nil
+	})
+
+	client := NewClient("secret-value", &http.Client{Transport: transport})
+	client.baseURL = "https://example.test"
+
+	transcripts, err := client.EarningsCallTranscript(context.Background(), "aapl", 2026, 1)
+	if err != nil {
+		t.Fatalf("EarningsCallTranscript() error = %v", err)
+	}
+	if len(transcripts) != 1 {
+		t.Fatalf("len(transcripts) = %d, want 1", len(transcripts))
+	}
+	if transcripts[0]["symbol"] != "AAPL" {
+		t.Fatalf("transcripts[0][symbol] = %q, want AAPL", transcripts[0]["symbol"])
+	}
+}
+
 func TestStockPeersUsesStableEndpoint(t *testing.T) {
 	transport := roundTripFunc(func(r *http.Request) (*http.Response, error) {
 		if got := r.Header.Get("apikey"); got != "secret-value" {
