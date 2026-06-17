@@ -30,6 +30,8 @@ func runStocks(ctx context.Context, args []string, stdout, stderr io.Writer, get
 		return runStocksProfile(ctx, args[1:], stdout, stderr, getenv)
 	case "quote", "quotes":
 		return runStocksQuote(ctx, args[1:], stdout, stderr, getenv)
+	case "statements":
+		return runStocksStatements(ctx, args[1:], stdout, stderr, getenv)
 	case "watch":
 		return runStocksWatch(ctx, args[1:], stdout, stderr, getenv)
 	default:
@@ -89,6 +91,7 @@ Commands:
   profile Fetch company profile data
   quote   Fetch one or more stock quotes
   quotes  Alias for quote
+  statements Fetch income, balance sheet, or cash flow statements
   watch   Refresh stock quotes in a terminal view
 `)
 }
@@ -130,6 +133,20 @@ Flags:
   --limit <n>    Maximum rows to print
   --json         Write JSON output
   --csv          Write CSV output
+`)
+}
+
+func writeStocksStatementsHelp(w io.Writer) {
+	fmt.Fprint(w, `Fetch stock financial statements.
+
+Usage:
+  stonk stocks statements <symbol> <income|balance|cash-flow> [flags]
+
+Flags:
+  --period <annual|quarter>  Reporting period
+  --limit <n>                Maximum statements to request
+  --json                     Write JSON output
+  --csv                      Write CSV output
 `)
 }
 
