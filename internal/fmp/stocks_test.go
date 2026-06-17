@@ -119,6 +119,43 @@ func TestStockKeyMetricsTTMUsesStableEndpoint(t *testing.T) {
 	}
 }
 
+func TestStockPeersUsesStableEndpoint(t *testing.T) {
+	transport := roundTripFunc(func(r *http.Request) (*http.Response, error) {
+		if got := r.Header.Get("apikey"); got != "secret-value" {
+			t.Fatalf("apikey header = %q, want secret-value", got)
+		}
+		if got := r.URL.Query().Get("apikey"); got != "" {
+			t.Fatalf("apikey query = %q, want empty", got)
+		}
+		if got := r.URL.Path; got != "/stock-peers" {
+			t.Fatalf("path = %q, want /stock-peers", got)
+		}
+		if got := r.URL.Query().Get("symbol"); got != "AAPL" {
+			t.Fatalf("symbol query = %q, want AAPL", got)
+		}
+
+		return &http.Response{
+			StatusCode: http.StatusOK,
+			Header:     make(http.Header),
+			Body:       io.NopCloser(strings.NewReader(`[{"symbol":"MSFT","companyName":"Microsoft Corporation","price":378.91,"mktCap":2814706411300}]`)),
+		}, nil
+	})
+
+	client := NewClient("secret-value", &http.Client{Transport: transport})
+	client.baseURL = "https://example.test"
+
+	peers, err := client.StockPeers(context.Background(), "aapl")
+	if err != nil {
+		t.Fatalf("StockPeers() error = %v", err)
+	}
+	if len(peers) != 1 {
+		t.Fatalf("len(peers) = %d, want 1", len(peers))
+	}
+	if peers[0].Symbol != "MSFT" {
+		t.Fatalf("peers[0].Symbol = %q, want MSFT", peers[0].Symbol)
+	}
+}
+
 func TestBatchQuotesHandlesNullMarketCapAndChangeFieldVariants(t *testing.T) {
 	transport := roundTripFunc(func(r *http.Request) (*http.Response, error) {
 		return &http.Response{

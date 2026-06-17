@@ -30,6 +30,14 @@ type StockRatioRow map[string]any
 // StockMetricRow is one raw key metrics row returned by FMP.
 type StockMetricRow map[string]any
 
+// StockPeer is one peer company row returned by FMP.
+type StockPeer struct {
+	Symbol      string  `json:"symbol"`
+	CompanyName string  `json:"companyName"`
+	Price       float64 `json:"price"`
+	MarketCap   float64 `json:"mktCap"`
+}
+
 // UnmarshalJSON accepts both stable and v3 quote field variants.
 func (q *Quote) UnmarshalJSON(data []byte) error {
 	var raw struct {
@@ -94,6 +102,20 @@ func (c *Client) StockKeyMetricsTTM(ctx context.Context, symbol string) ([]Stock
 		return nil, err
 	}
 	return metrics, nil
+}
+
+// StockPeers returns peer companies for a stock symbol.
+func (c *Client) StockPeers(ctx context.Context, symbol string) ([]StockPeer, error) {
+	symbol = strings.ToUpper(strings.TrimSpace(symbol))
+	if symbol == "" {
+		return nil, fmt.Errorf("symbol is required")
+	}
+
+	var peers []StockPeer
+	if err := c.get(ctx, "/stock-peers", url.Values{"symbol": []string{symbol}}, &peers); err != nil {
+		return nil, err
+	}
+	return peers, nil
 }
 
 // BatchQuotes returns current quote data for symbols supported by the stable batch quote endpoint.

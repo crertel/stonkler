@@ -28,6 +28,8 @@ func runStocks(ctx context.Context, args []string, stdout, stderr io.Writer, get
 		return runStocksHistory(ctx, args[1:], stdout, stderr, getenv)
 	case "metrics":
 		return runStocksMetrics(ctx, args[1:], stdout, stderr, getenv)
+	case "peers":
+		return runStocksPeers(ctx, args[1:], stdout, stderr, getenv)
 	case "profile":
 		return runStocksProfile(ctx, args[1:], stdout, stderr, getenv)
 	case "quote", "quotes":
@@ -93,6 +95,7 @@ Usage:
 Commands:
   history Fetch historical end-of-day prices
   metrics Fetch trailing-twelve-month key metrics
+  peers   Fetch peer companies
   profile Fetch company profile data
   quote   Fetch one or more stock quotes
   quotes  Alias for quote
