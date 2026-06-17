@@ -24,6 +24,8 @@ func runStocks(ctx context.Context, args []string, stdout, stderr io.Writer, get
 	case "-h", "--help", "help":
 		writeStocksHelp(stdout)
 		return 0
+	case "history":
+		return runStocksHistory(ctx, args[1:], stdout, stderr, getenv)
 	case "profile":
 		return runStocksProfile(ctx, args[1:], stdout, stderr, getenv)
 	case "quote", "quotes":
@@ -83,6 +85,7 @@ Usage:
   stonk stocks <command> [flags]
 
 Commands:
+  history Fetch historical end-of-day prices
   profile Fetch company profile data
   quote   Fetch one or more stock quotes
   quotes  Alias for quote
@@ -112,6 +115,21 @@ Usage:
 Flags:
   --json  Write JSON output
   --csv   Write CSV output
+`)
+}
+
+func writeStocksHistoryHelp(w io.Writer) {
+	fmt.Fprint(w, `Fetch historical end-of-day prices.
+
+Usage:
+  stonk stocks history <symbol> [flags]
+
+Flags:
+  --from <date>  Start date in YYYY-MM-DD format
+  --to <date>    End date in YYYY-MM-DD format
+  --limit <n>    Maximum rows to print
+  --json         Write JSON output
+  --csv          Write CSV output
 `)
 }
 
