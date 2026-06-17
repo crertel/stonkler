@@ -4,6 +4,8 @@ import (
 	"context"
 	"fmt"
 	"io"
+
+	"github.com/crertel/stonkler/internal/fmp"
 )
 
 func runFunds(ctx context.Context, args []string, stdout, stderr io.Writer, getenv getenvFunc) int {
@@ -20,6 +22,8 @@ func runFunds(ctx context.Context, args []string, stdout, stderr io.Writer, gete
 		return runFundsHoldings(ctx, args[1:], stdout, stderr, getenv)
 	case "info":
 		return runFundsInfo(ctx, args[1:], stdout, stderr, getenv)
+	case "watch":
+		return runFundsWatch(ctx, args[1:], stdout, stderr, getenv)
 	default:
 		fmt.Fprintf(stderr, "unknown funds command %q\n\n", args[0])
 		writeFundsHelp(stderr)
@@ -36,6 +40,7 @@ Usage:
 Commands:
   holdings Fetch ETF holdings
   info     Fetch ETF or fund profile information
+  watch    Refresh ETF or fund quotes in a terminal view
 `)
 }
 
@@ -61,5 +66,26 @@ Usage:
 Flags:
   --json  Write JSON output
   --csv   Write CSV output
+`)
+}
+
+func runFundsWatch(ctx context.Context, args []string, stdout, stderr io.Writer, getenv getenvFunc) int {
+	return runQuoteWatchCommand(ctx, args, stdout, stderr, getenv, "funds", writeFundsWatchHelp, fundQuotes)
+}
+
+func fundQuotes(ctx context.Context, client *fmp.Client, symbols []string) ([]fmp.Quote, error) {
+	return client.BatchQuotes(ctx, symbols)
+}
+
+func writeFundsWatchHelp(w io.Writer) {
+	fmt.Fprint(w, `Refresh ETF or fund quotes in a terminal view.
+
+Usage:
+  stonk funds watch <symbol> [symbol...] [flags]
+
+Flags:
+  --interval <duration>  Refresh interval, such as 5s or 1m
+  --count <n>            Number of refreshes before exiting
+  --jsonl                Write newline-delimited JSON updates
 `)
 }
