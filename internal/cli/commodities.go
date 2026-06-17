@@ -22,6 +22,8 @@ func runCommodities(ctx context.Context, args []string, stdout, stderr io.Writer
 		return runDomainHistory(ctx, args[1:], stdout, stderr, getenv, "commodities", writeCommoditiesHistoryHelp, nil)
 	case "quote", "quotes":
 		return runDomainQuote(ctx, args[1:], stdout, stderr, getenv, "commodities", writeCommoditiesQuoteHelp, commodityQuotes)
+	case "watch":
+		return runCommoditiesWatch(ctx, args[1:], stdout, stderr, getenv)
 	default:
 		fmt.Fprintf(stderr, "unknown commodities command %q\n\n", args[0])
 		writeCommoditiesHelp(stderr)
@@ -43,6 +45,7 @@ Commands:
   history Fetch historical end-of-day commodity prices
   quote   Fetch one or more commodity quotes
   quotes  Alias for quote
+  watch   Refresh commodity quotes in a terminal view
 `)
 }
 
@@ -71,5 +74,22 @@ Flags:
   --limit <n>    Maximum rows to print
   --json         Write JSON output
   --csv          Write CSV output
+`)
+}
+
+func runCommoditiesWatch(ctx context.Context, args []string, stdout, stderr io.Writer, getenv getenvFunc) int {
+	return runQuoteWatchCommand(ctx, args, stdout, stderr, getenv, "commodities", writeCommoditiesWatchHelp, commodityQuotes)
+}
+
+func writeCommoditiesWatchHelp(w io.Writer) {
+	fmt.Fprint(w, `Refresh commodity quotes in a terminal view.
+
+Usage:
+  stonk commodities watch <symbol> [symbol...] [flags]
+
+Flags:
+  --interval <duration>  Refresh interval, such as 5s or 1m
+  --count <n>            Number of refreshes before exiting
+  --jsonl                Write newline-delimited JSON updates
 `)
 }
