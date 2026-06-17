@@ -18,6 +18,8 @@ func runCrypto(ctx context.Context, args []string, stdout, stderr io.Writer, get
 	case "-h", "--help", "help":
 		writeCryptoHelp(stdout)
 		return 0
+	case "history":
+		return runDomainHistory(ctx, args[1:], stdout, stderr, getenv, "crypto", writeCryptoHistoryHelp, nil)
 	case "quote", "quotes":
 		return runDomainQuote(ctx, args[1:], stdout, stderr, getenv, "crypto", writeCryptoQuoteHelp, cryptoQuotes)
 	default:
@@ -38,6 +40,7 @@ Usage:
   stonk crypto <command> [flags]
 
 Commands:
+  history Fetch historical end-of-day crypto prices
   quote   Fetch one or more cryptocurrency quotes
   quotes  Alias for quote
 `)
@@ -53,5 +56,20 @@ Usage:
 Flags:
   --json  Write JSON output
   --csv   Write CSV output
+`)
+}
+
+func writeCryptoHistoryHelp(w io.Writer) {
+	fmt.Fprint(w, `Fetch historical end-of-day crypto prices.
+
+Usage:
+  stonk crypto history <symbol> [flags]
+
+Flags:
+  --from <date>  Start date in YYYY-MM-DD format
+  --to <date>    End date in YYYY-MM-DD format
+  --limit <n>    Maximum rows to print
+  --json         Write JSON output
+  --csv          Write CSV output
 `)
 }

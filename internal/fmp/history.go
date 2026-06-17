@@ -30,6 +30,11 @@ type StockPrice struct {
 
 // StockHistory returns historical end-of-day prices for a stock symbol.
 func (c *Client) StockHistory(ctx context.Context, request StockHistoryRequest) ([]StockPrice, error) {
+	return c.PriceHistory(ctx, request)
+}
+
+// PriceHistory returns historical end-of-day prices for any supported symbol.
+func (c *Client) PriceHistory(ctx context.Context, request StockHistoryRequest) ([]StockPrice, error) {
 	symbol := strings.ToUpper(strings.TrimSpace(request.Symbol))
 	if symbol == "" {
 		return nil, fmt.Errorf("symbol is required")
