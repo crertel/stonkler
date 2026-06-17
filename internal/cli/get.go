@@ -17,7 +17,7 @@ func runGet(ctx context.Context, args []string, stdout, stderr io.Writer, getenv
 		writeGetHelp(stdout)
 		return 0
 	case "analyst":
-		return runStocksAnalyst(ctx, args[1:], stdout, stderr, getenv)
+		return runGetAnalyst(ctx, args[1:], stdout, stderr, getenv)
 	case "company", "profile":
 		return runGetCompany(ctx, args[1:], stdout, stderr, getenv)
 	case "country-weightings":
