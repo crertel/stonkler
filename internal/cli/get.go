@@ -21,7 +21,7 @@ func runGet(ctx context.Context, args []string, stdout, stderr io.Writer, getenv
 	case "company", "profile":
 		return runGetCompany(ctx, args[1:], stdout, stderr, getenv)
 	case "country-weightings":
-		return runFundsCountryWeightings(ctx, args[1:], stdout, stderr, getenv)
+		return runGetCountryWeightings(ctx, args[1:], stdout, stderr, getenv)
 	case "commodity", "commodities":
 		return runDomainQuote(ctx, args[1:], stdout, stderr, getenv, "commodities", writeCommoditiesQuoteHelp, commodityQuotes)
 	case "commodity-history", "commodities-history":
