@@ -38,6 +38,19 @@ type StockPeer struct {
 	MarketCap   float64 `json:"mktCap"`
 }
 
+// StockRatingSnapshot is FMP's compact analyst rating score snapshot.
+type StockRatingSnapshot struct {
+	Symbol                  string  `json:"symbol"`
+	Rating                  string  `json:"rating"`
+	OverallScore            float64 `json:"overallScore"`
+	DiscountedCashFlowScore float64 `json:"discountedCashFlowScore"`
+	ReturnOnEquityScore     float64 `json:"returnOnEquityScore"`
+	ReturnOnAssetsScore     float64 `json:"returnOnAssetsScore"`
+	DebtToEquityScore       float64 `json:"debtToEquityScore"`
+	PriceToEarningsScore    float64 `json:"priceToEarningsScore"`
+	PriceToBookScore        float64 `json:"priceToBookScore"`
+}
+
 // UnmarshalJSON accepts both stable and v3 quote field variants.
 func (q *Quote) UnmarshalJSON(data []byte) error {
 	var raw struct {
@@ -116,6 +129,20 @@ func (c *Client) StockPeers(ctx context.Context, symbol string) ([]StockPeer, er
 		return nil, err
 	}
 	return peers, nil
+}
+
+// StockRatingSnapshot returns FMP's compact analyst rating score snapshot.
+func (c *Client) StockRatingSnapshot(ctx context.Context, symbol string) ([]StockRatingSnapshot, error) {
+	symbol = strings.ToUpper(strings.TrimSpace(symbol))
+	if symbol == "" {
+		return nil, fmt.Errorf("symbol is required")
+	}
+
+	var ratings []StockRatingSnapshot
+	if err := c.get(ctx, "/ratings-snapshot", url.Values{"symbol": []string{symbol}}, &ratings); err != nil {
+		return nil, err
+	}
+	return ratings, nil
 }
 
 // BatchQuotes returns current quote data for symbols supported by the stable batch quote endpoint.

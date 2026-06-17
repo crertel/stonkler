@@ -24,6 +24,8 @@ func runStocks(ctx context.Context, args []string, stdout, stderr io.Writer, get
 	case "-h", "--help", "help":
 		writeStocksHelp(stdout)
 		return 0
+	case "analyst":
+		return runStocksAnalyst(ctx, args[1:], stdout, stderr, getenv)
 	case "history":
 		return runStocksHistory(ctx, args[1:], stdout, stderr, getenv)
 	case "metrics":
@@ -93,6 +95,7 @@ Usage:
   stonk stocks <command> [flags]
 
 Commands:
+  analyst Fetch analyst rating snapshot scores
   history Fetch historical end-of-day prices
   metrics Fetch trailing-twelve-month key metrics
   peers   Fetch peer companies

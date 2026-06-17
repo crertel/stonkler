@@ -156,6 +156,43 @@ func TestStockPeersUsesStableEndpoint(t *testing.T) {
 	}
 }
 
+func TestStockRatingSnapshotUsesStableEndpoint(t *testing.T) {
+	transport := roundTripFunc(func(r *http.Request) (*http.Response, error) {
+		if got := r.Header.Get("apikey"); got != "secret-value" {
+			t.Fatalf("apikey header = %q, want secret-value", got)
+		}
+		if got := r.URL.Query().Get("apikey"); got != "" {
+			t.Fatalf("apikey query = %q, want empty", got)
+		}
+		if got := r.URL.Path; got != "/ratings-snapshot" {
+			t.Fatalf("path = %q, want /ratings-snapshot", got)
+		}
+		if got := r.URL.Query().Get("symbol"); got != "AAPL" {
+			t.Fatalf("symbol query = %q, want AAPL", got)
+		}
+
+		return &http.Response{
+			StatusCode: http.StatusOK,
+			Header:     make(http.Header),
+			Body:       io.NopCloser(strings.NewReader(`[{"symbol":"AAPL","rating":"B","overallScore":3,"discountedCashFlowScore":3,"returnOnEquityScore":5,"returnOnAssetsScore":5,"debtToEquityScore":1,"priceToEarningsScore":2,"priceToBookScore":1}]`)),
+		}, nil
+	})
+
+	client := NewClient("secret-value", &http.Client{Transport: transport})
+	client.baseURL = "https://example.test"
+
+	ratings, err := client.StockRatingSnapshot(context.Background(), "aapl")
+	if err != nil {
+		t.Fatalf("StockRatingSnapshot() error = %v", err)
+	}
+	if len(ratings) != 1 {
+		t.Fatalf("len(ratings) = %d, want 1", len(ratings))
+	}
+	if ratings[0].Rating != "B" {
+		t.Fatalf("ratings[0].Rating = %q, want B", ratings[0].Rating)
+	}
+}
+
 func TestBatchQuotesHandlesNullMarketCapAndChangeFieldVariants(t *testing.T) {
 	transport := roundTripFunc(func(r *http.Request) (*http.Response, error) {
 		return &http.Response{
