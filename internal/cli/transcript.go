@@ -18,6 +18,7 @@ type transcriptOptions struct {
 	symbol  string
 	year    int
 	quarter int
+	latest  bool
 }
 
 func runStocksTranscript(ctx context.Context, args []string, stdout, stderr io.Writer, getenv getenvFunc) int {
@@ -42,6 +43,22 @@ func runStocksTranscript(ctx context.Context, args []string, stdout, stderr io.W
 	}
 
 	client := fmp.NewClient(apiKey, http.DefaultClient)
+	if options.latest {
+		dates, err := client.EarningsCallTranscriptDates(ctx, options.symbol)
+		if err != nil {
+			fmt.Fprintf(stderr, "stocks transcript failed: %v\n", err)
+			return 1
+		}
+
+		year, quarter, ok := latestTranscriptPeriod(dates)
+		if !ok {
+			fmt.Fprintf(stderr, "no transcript dates found for %s\n", options.symbol)
+			return 1
+		}
+		options.year = year
+		options.quarter = quarter
+	}
+
 	transcripts, err := client.EarningsCallTranscript(ctx, options.symbol, options.year, options.quarter)
 	if err != nil {
 		fmt.Fprintf(stderr, "stocks transcript failed: %v\n", err)
@@ -73,6 +90,8 @@ func parseTranscriptOptions(args []string, stderr io.Writer) (transcriptOptions,
 				return transcriptOptions{}, false
 			}
 			options.format = outputCSV
+		case "--latest":
+			options.latest = true
 		case "--year":
 			value, ok := nextFlagValue(args, &i, "--year", stderr)
 			if !ok {
@@ -112,6 +131,13 @@ func parseTranscriptOptions(args []string, stderr io.Writer) (transcriptOptions,
 		fmt.Fprintln(stderr, "stocks transcript requires exactly one symbol")
 		return transcriptOptions{}, false
 	}
+	if options.latest && (options.year != 0 || options.quarter != 0) {
+		fmt.Fprintln(stderr, "--latest cannot be combined with --year or --quarter")
+		return transcriptOptions{}, false
+	}
+	if options.latest {
+		return options, true
+	}
 	if options.year == 0 {
 		fmt.Fprintln(stderr, "stocks transcript requires --year")
 		return transcriptOptions{}, false
@@ -128,13 +154,43 @@ func writeStocksTranscriptHelp(w io.Writer) {
 
 Usage:
   stonk stocks transcript <symbol> --year <year> --quarter <1-4> [flags]
+  stonk stocks transcript <symbol> --latest [flags]
 
 Flags:
   --year <year>     Fiscal year
   --quarter <1-4>   Fiscal quarter
+  --latest          Fetch the most recent transcript period
   --json            Write JSON output
   --csv             Write CSV output
 `)
+}
+
+func latestTranscriptPeriod(dates []fmp.EarningsCallTranscriptDate) (int, int, bool) {
+	var best fmp.EarningsCallTranscriptDate
+	found := false
+	for _, date := range dates {
+		if date.Year <= 0 || date.Quarter < 1 || date.Quarter > 4 {
+			continue
+		}
+		if !found || newerTranscriptDate(date, best) {
+			best = date
+			found = true
+		}
+	}
+	if !found {
+		return 0, 0, false
+	}
+	return best.Year, best.Quarter, true
+}
+
+func newerTranscriptDate(candidate, current fmp.EarningsCallTranscriptDate) bool {
+	if candidate.Date != "" || current.Date != "" {
+		return candidate.Date > current.Date
+	}
+	if candidate.Year != current.Year {
+		return candidate.Year > current.Year
+	}
+	return candidate.Quarter > current.Quarter
 }
 
 func writeTranscripts(w io.Writer, transcripts []fmp.EarningsCallTranscript, format outputFormat) error {

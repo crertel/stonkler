@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/url"
+	"strconv"
 	"strings"
 )
 
@@ -32,6 +33,14 @@ type StockMetricRow map[string]any
 
 // EarningsCallTranscript is one raw earnings call transcript row returned by FMP.
 type EarningsCallTranscript map[string]any
+
+// EarningsCallTranscriptDate is one available transcript period returned by FMP.
+type EarningsCallTranscriptDate struct {
+	Symbol  string `json:"symbol,omitempty"`
+	Year    int    `json:"year"`
+	Quarter int    `json:"quarter"`
+	Date    string `json:"date,omitempty"`
+}
 
 // StockPeer is one peer company row returned by FMP.
 type StockPeer struct {
@@ -169,6 +178,32 @@ func (q *Quote) UnmarshalJSON(data []byte) error {
 	return nil
 }
 
+// UnmarshalJSON accepts stable endpoint variants for transcript period rows.
+func (d *EarningsCallTranscriptDate) UnmarshalJSON(data []byte) error {
+	var raw map[string]any
+	if err := json.Unmarshal(data, &raw); err != nil {
+		return err
+	}
+
+	d.Symbol = stringField(raw, "symbol")
+	d.Year = intField(raw, "year")
+	if d.Year == 0 {
+		d.Year = intField(raw, "fiscalYear")
+	}
+	if d.Year == 0 {
+		d.Year = intField(raw, "calendarYear")
+	}
+	d.Quarter = intField(raw, "quarter")
+	if d.Quarter == 0 {
+		d.Quarter = intField(raw, "fiscalQuarter")
+	}
+	d.Date = stringField(raw, "date")
+	if d.Date == "" {
+		d.Date = stringField(raw, "fillingDate")
+	}
+	return nil
+}
+
 // StockQuotes returns current quote data for one or more stock symbols.
 func (c *Client) StockQuotes(ctx context.Context, symbols []string) ([]StockQuote, error) {
 	return c.BatchQuotes(ctx, symbols)
@@ -225,6 +260,20 @@ func (c *Client) EarningsCallTranscript(ctx context.Context, symbol string, year
 		return nil, err
 	}
 	return transcripts, nil
+}
+
+// EarningsCallTranscriptDates returns available earnings call transcript periods for a symbol.
+func (c *Client) EarningsCallTranscriptDates(ctx context.Context, symbol string) ([]EarningsCallTranscriptDate, error) {
+	symbol = strings.ToUpper(strings.TrimSpace(symbol))
+	if symbol == "" {
+		return nil, fmt.Errorf("symbol is required")
+	}
+
+	var dates []EarningsCallTranscriptDate
+	if err := c.get(ctx, "/earning-call-transcript-dates", url.Values{"symbol": []string{symbol}}, &dates); err != nil {
+		return nil, err
+	}
+	return dates, nil
 }
 
 // StockPeers returns peer companies for a stock symbol.
@@ -372,4 +421,35 @@ func intValueOrZero(value *int64) int64 {
 		return 0
 	}
 	return *value
+}
+
+func stringField(row map[string]any, field string) string {
+	value, ok := row[field]
+	if !ok || value == nil {
+		return ""
+	}
+	switch typed := value.(type) {
+	case string:
+		return typed
+	default:
+		return fmt.Sprint(typed)
+	}
+}
+
+func intField(row map[string]any, field string) int {
+	value, ok := row[field]
+	if !ok || value == nil {
+		return 0
+	}
+	switch typed := value.(type) {
+	case float64:
+		return int(typed)
+	case string:
+		trimmed := strings.TrimPrefix(strings.ToUpper(strings.TrimSpace(typed)), "Q")
+		parsed, err := strconv.Atoi(trimmed)
+		if err == nil {
+			return parsed
+		}
+	}
+	return 0
 }

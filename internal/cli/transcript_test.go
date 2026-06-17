@@ -22,6 +22,47 @@ func TestRunStocksTranscriptMissingKey(t *testing.T) {
 	}
 }
 
+func TestRunStocksTranscriptLatestMissingKey(t *testing.T) {
+	var stdout, stderr bytes.Buffer
+
+	code := runStocksTranscript(context.Background(), []string{"AAPL", "--latest"}, &stdout, &stderr, func(string) string { return "" })
+
+	if code != 1 {
+		t.Fatalf("runStocksTranscript() code = %d, want 1", code)
+	}
+	if !strings.Contains(stderr.String(), "FMP_API_KEY is not configured") {
+		t.Fatalf("stderr = %q, want missing key error", stderr.String())
+	}
+}
+
+func TestParseTranscriptOptionsLatestRejectsExplicitPeriod(t *testing.T) {
+	var stderr bytes.Buffer
+
+	_, ok := parseTranscriptOptions([]string{"AAPL", "--latest", "--year", "2026"}, &stderr)
+
+	if ok {
+		t.Fatal("parseTranscriptOptions() ok = true, want false")
+	}
+	if !strings.Contains(stderr.String(), "--latest cannot be combined") {
+		t.Fatalf("stderr = %q, want latest conflict error", stderr.String())
+	}
+}
+
+func TestLatestTranscriptPeriodPrefersNewestDate(t *testing.T) {
+	year, quarter, ok := latestTranscriptPeriod([]fmp.EarningsCallTranscriptDate{
+		{Symbol: "AAPL", Year: 2026, Quarter: 1, Date: "2026-01-30"},
+		{Symbol: "AAPL", Year: 2025, Quarter: 4, Date: "2025-10-30"},
+		{Symbol: "AAPL", Year: 2026, Quarter: 2, Date: "2026-04-30"},
+	})
+
+	if !ok {
+		t.Fatal("latestTranscriptPeriod() ok = false, want true")
+	}
+	if year != 2026 || quarter != 2 {
+		t.Fatalf("latestTranscriptPeriod() = %d Q%d, want 2026 Q2", year, quarter)
+	}
+}
+
 func TestWriteTranscriptsCSV(t *testing.T) {
 	var stdout bytes.Buffer
 

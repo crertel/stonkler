@@ -162,6 +162,43 @@ func TestEarningsCallTranscriptUsesStableEndpoint(t *testing.T) {
 	}
 }
 
+func TestEarningsCallTranscriptDatesUsesStableEndpoint(t *testing.T) {
+	transport := roundTripFunc(func(r *http.Request) (*http.Response, error) {
+		if got := r.Header.Get("apikey"); got != "secret-value" {
+			t.Fatalf("apikey header = %q, want secret-value", got)
+		}
+		if got := r.URL.Query().Get("apikey"); got != "" {
+			t.Fatalf("apikey query = %q, want empty", got)
+		}
+		if got := r.URL.Path; got != "/earning-call-transcript-dates" {
+			t.Fatalf("path = %q, want /earning-call-transcript-dates", got)
+		}
+		if got := r.URL.Query().Get("symbol"); got != "AAPL" {
+			t.Fatalf("symbol query = %q, want AAPL", got)
+		}
+
+		return &http.Response{
+			StatusCode: http.StatusOK,
+			Header:     make(http.Header),
+			Body:       io.NopCloser(strings.NewReader(`[{"symbol":"AAPL","year":2026,"quarter":"Q1","date":"2026-01-30"}]`)),
+		}, nil
+	})
+
+	client := NewClient("secret-value", &http.Client{Transport: transport})
+	client.baseURL = "https://example.test"
+
+	dates, err := client.EarningsCallTranscriptDates(context.Background(), "aapl")
+	if err != nil {
+		t.Fatalf("EarningsCallTranscriptDates() error = %v", err)
+	}
+	if len(dates) != 1 {
+		t.Fatalf("len(dates) = %d, want 1", len(dates))
+	}
+	if dates[0].Symbol != "AAPL" || dates[0].Year != 2026 || dates[0].Quarter != 1 {
+		t.Fatalf("dates[0] = %+v, want AAPL 2026 Q1", dates[0])
+	}
+}
+
 func TestStockPeersUsesStableEndpoint(t *testing.T) {
 	transport := roundTripFunc(func(r *http.Request) (*http.Response, error) {
 		if got := r.Header.Get("apikey"); got != "secret-value" {
