@@ -42,6 +42,8 @@ func runGet(ctx context.Context, args []string, stdout, stderr io.Writer, getenv
 		return runDomainQuote(ctx, args[1:], stdout, stderr, getenv, "indexes", writeIndexesQuoteHelp, indexQuotes)
 	case "index-history", "indexes-history":
 		return runDomainHistory(ctx, args[1:], stdout, stderr, getenv, "indexes", writeIndexesHistoryHelp, normalizeIndexSymbol)
+	case "insiders":
+		return runStocksInsiders(ctx, args[1:], stdout, stderr, getenv)
 	case "metrics":
 		return runStocksMetrics(ctx, args[1:], stdout, stderr, getenv)
 	case "peers":
@@ -79,6 +81,7 @@ Commands:
   holdings Fetch ETF holdings, inferring the funds domain for now
   index   Fetch index quotes
   index-history Fetch index history
+  insiders Fetch stock insider transactions, inferring the stock domain for now
   metrics Fetch stock key metrics, inferring the stock domain for now
   peers   Fetch stock peers, inferring the stock domain for now
   profile Alias for company

@@ -127,6 +127,19 @@ func TestRunGetPeersUsesStocksPeersValidation(t *testing.T) {
 	}
 }
 
+func TestRunGetInsidersUsesStocksInsidersValidation(t *testing.T) {
+	var stdout, stderr bytes.Buffer
+
+	code := runGet(context.Background(), []string{"insiders", "AAPL"}, &stdout, &stderr, func(string) string { return "" })
+
+	if code != 1 {
+		t.Fatalf("runGet() code = %d, want 1", code)
+	}
+	if !strings.Contains(stderr.String(), "FMP_API_KEY is not configured") {
+		t.Fatalf("stderr = %q, want missing FMP key error", stderr.String())
+	}
+}
+
 func TestRunGetHoldingsUsesFundsHoldingsValidation(t *testing.T) {
 	var stdout, stderr bytes.Buffer
 
