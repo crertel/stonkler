@@ -63,7 +63,7 @@ func runGet(ctx context.Context, args []string, stdout, stderr io.Writer, getenv
 	case "statement", "statements":
 		return runGetStatements(ctx, args[1:], stdout, stderr, getenv)
 	case "transcript":
-		return runStocksTranscript(ctx, args[1:], stdout, stderr, getenv)
+		return runGetTranscript(ctx, args[1:], stdout, stderr, getenv)
 	default:
 		fmt.Fprintf(stderr, "unknown get command %q\n\n", args[0])
 		writeGetHelp(stderr)
