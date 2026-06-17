@@ -60,6 +60,8 @@ func runGet(ctx context.Context, args []string, stdout, stderr io.Writer, getenv
 		return runFundsSectorWeightings(ctx, args[1:], stdout, stderr, getenv)
 	case "statement", "statements":
 		return runStocksStatements(ctx, args[1:], stdout, stderr, getenv)
+	case "transcript":
+		return runStocksTranscript(ctx, args[1:], stdout, stderr, getenv)
 	default:
 		fmt.Fprintf(stderr, "unknown get command %q\n\n", args[0])
 		writeGetHelp(stderr)
@@ -98,5 +100,6 @@ Commands:
   sec     Fetch stock SEC filings, inferring the stock domain for now
   sector-weightings Fetch ETF or fund sector allocation weights
   statements Fetch financial statements, inferring the stock domain for now
+  transcript Fetch an earnings call transcript, inferring the stock domain for now
 `)
 }
