@@ -47,7 +47,7 @@ func runGet(ctx context.Context, args []string, stdout, stderr io.Writer, getenv
 	case "index-history", "indexes-history":
 		return runDomainHistory(ctx, args[1:], stdout, stderr, getenv, "indexes", writeIndexesHistoryHelp, normalizeIndexSymbol)
 	case "insiders":
-		return runStocksInsiders(ctx, args[1:], stdout, stderr, getenv)
+		return runGetInsiders(ctx, args[1:], stdout, stderr, getenv)
 	case "metrics":
 		return runGetMetrics(ctx, args[1:], stdout, stderr, getenv)
 	case "peers":
