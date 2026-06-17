@@ -44,3 +44,52 @@ func TestStockQuotesUsesBatchEndpoint(t *testing.T) {
 		t.Fatalf("quotes[0].Symbol = %q, want AAPL", quotes[0].Symbol)
 	}
 }
+
+func TestBatchQuotesHandlesNullMarketCapAndChangeFieldVariants(t *testing.T) {
+	transport := roundTripFunc(func(r *http.Request) (*http.Response, error) {
+		return &http.Response{
+			StatusCode: http.StatusOK,
+			Header:     make(http.Header),
+			Body:       io.NopCloser(strings.NewReader(`[{"symbol":"EURUSD","name":"EUR/USD","price":1.14,"change":-0.01,"changePercentage":-1.2,"volume":155095,"marketCap":null,"timestamp":1781727386},{"symbol":"^GSPC","name":"S&P 500","price":7421.76,"changesPercentage":-1.19,"change":-89.59,"volume":2624646000,"marketCap":0,"timestamp":1781726399}]`)),
+		}, nil
+	})
+
+	client := NewClient("secret-value", &http.Client{Transport: transport})
+	client.baseURL = "https://example.test"
+
+	quotes, err := client.BatchQuotes(context.Background(), []string{"EURUSD", "^GSPC"})
+	if err != nil {
+		t.Fatalf("BatchQuotes() error = %v", err)
+	}
+	if quotes[0].MarketCap != 0 {
+		t.Fatalf("quotes[0].MarketCap = %v, want 0", quotes[0].MarketCap)
+	}
+	if quotes[1].ChangePercentage != -1.19 {
+		t.Fatalf("quotes[1].ChangePercentage = %v, want -1.19", quotes[1].ChangePercentage)
+	}
+}
+
+func TestIndexQuotesUsesV3QuoteEndpoint(t *testing.T) {
+	transport := roundTripFunc(func(r *http.Request) (*http.Response, error) {
+		if got := r.URL.Path; got != "/quote/^GSPC,^DJI" {
+			t.Fatalf("path = %q, want /quote/^GSPC,^DJI", got)
+		}
+
+		return &http.Response{
+			StatusCode: http.StatusOK,
+			Header:     make(http.Header),
+			Body:       io.NopCloser(strings.NewReader(`[{"symbol":"^GSPC","name":"S&P 500","price":7421.76,"changesPercentage":-1.19,"change":-89.59}]`)),
+		}, nil
+	})
+
+	client := NewClient("secret-value", &http.Client{Transport: transport})
+	client.v3BaseURL = "https://example.test"
+
+	quotes, err := client.IndexQuotes(context.Background(), []string{"gspc", "^dji"})
+	if err != nil {
+		t.Fatalf("IndexQuotes() error = %v", err)
+	}
+	if len(quotes) != 1 {
+		t.Fatalf("len(quotes) = %d, want 1", len(quotes))
+	}
+}
