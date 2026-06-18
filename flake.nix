@@ -6,7 +6,7 @@
   };
 
   outputs =
-    { nixpkgs, ... }:
+    { self, nixpkgs, ... }:
     let
       systems = [
         "x86_64-linux"
@@ -27,6 +27,36 @@
         );
     in
     {
+      packages = forAllSystems (pkgs: {
+        stonk = pkgs.buildGoModule {
+          pname = "stonk";
+          version = "0.1.0";
+          src = pkgs.lib.cleanSource ./.;
+          vendorHash = null;
+          subPackages = [ "cmd/stonk" ];
+        };
+
+        default = pkgs.buildGoModule {
+          pname = "stonk";
+          version = "0.1.0";
+          src = pkgs.lib.cleanSource ./.;
+          vendorHash = null;
+          subPackages = [ "cmd/stonk" ];
+        };
+      });
+
+      apps = forAllSystems (pkgs: {
+        stonk = {
+          type = "app";
+          program = "${self.packages.${pkgs.stdenv.hostPlatform.system}.stonk}/bin/stonk";
+        };
+
+        default = {
+          type = "app";
+          program = "${self.packages.${pkgs.stdenv.hostPlatform.system}.default}/bin/stonk";
+        };
+      });
+
       devShells = forAllSystems (pkgs: {
         default = pkgs.mkShell {
           packages = with pkgs; [
