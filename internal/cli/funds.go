@@ -96,6 +96,7 @@ Flags:
   --interval <duration>  Refresh interval, such as 5s or 1m
   --count <n>            Number of refreshes before exiting
   --sort <field>         Sort by symbol, price, change, change-percent, or volume
+  --fields <list>        Comma-separated fields to show
   --jsonl                Write newline-delimited JSON updates
 `)
 }

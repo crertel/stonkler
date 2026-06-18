@@ -9,6 +9,7 @@ import (
 	"sort"
 	"strconv"
 	"strings"
+	"text/tabwriter"
 	"time"
 
 	"github.com/crertel/stonkler/internal/fmp"
@@ -19,6 +20,7 @@ type watchOptions struct {
 	count    int
 	jsonl    bool
 	sort     string
+	fields   []string
 	symbols  []string
 }
 
@@ -79,6 +81,17 @@ func parseWatchOptions(args []string, stderr io.Writer) (watchOptions, bool) {
 				return watchOptions{}, false
 			}
 			options.sort = value
+		case "--fields":
+			value, ok := nextFlagValue(args, &i, "--fields", stderr)
+			if !ok {
+				return watchOptions{}, false
+			}
+			fields, err := parseWatchFields(value)
+			if err != nil {
+				fmt.Fprintln(stderr, err)
+				return watchOptions{}, false
+			}
+			options.fields = fields
 		case "--interval":
 			if i+1 >= len(args) {
 				fmt.Fprintln(stderr, "--interval requires a duration")
@@ -140,7 +153,7 @@ func runQuoteWatchLoop(ctx context.Context, stdout, stderr io.Writer, client *fm
 			fmt.Fprintf(stdout, "Updated: %s\n\n", now)
 			if err != nil {
 				fmt.Fprintf(stdout, "ERROR\t%s\n", err)
-			} else if err := writeStockQuotesTable(stdout, quotes); err != nil {
+			} else if err := writeWatchQuotesTable(stdout, quotes, options.fields); err != nil {
 				fmt.Fprintf(stderr, "failed to write output: %v\n", err)
 				return 1
 			}
@@ -155,6 +168,106 @@ func runQuoteWatchLoop(ctx context.Context, stdout, stderr io.Writer, client *fm
 			return 130
 		case <-time.After(options.interval):
 		}
+	}
+}
+
+func parseWatchFields(value string) ([]string, error) {
+	parts := strings.Split(value, ",")
+	fields := make([]string, 0, len(parts))
+	for _, part := range parts {
+		field := strings.TrimSpace(part)
+		if field == "" {
+			continue
+		}
+		if !validWatchField(field) {
+			return nil, fmt.Errorf("invalid --fields value %q; use comma-separated symbol, name, price, change, change-percent, volume, market-cap, or updated", value)
+		}
+		fields = append(fields, field)
+	}
+	if len(fields) == 0 {
+		return nil, fmt.Errorf("--fields requires at least one field")
+	}
+	return fields, nil
+}
+
+func validWatchField(field string) bool {
+	switch field {
+	case "symbol", "name", "price", "change", "change-percent", "volume", "market-cap", "updated":
+		return true
+	default:
+		return false
+	}
+}
+
+func writeWatchQuotesTable(w io.Writer, quotes []fmp.Quote, fields []string) error {
+	if len(fields) == 0 {
+		return writeStockQuotesTable(w, quotes)
+	}
+
+	tw := tabwriter.NewWriter(w, 0, 0, 2, ' ', 0)
+	for index, field := range fields {
+		if index > 0 {
+			fmt.Fprint(tw, "\t")
+		}
+		fmt.Fprint(tw, watchFieldHeader(field))
+	}
+	fmt.Fprintln(tw)
+
+	for _, quote := range quotes {
+		for index, field := range fields {
+			if index > 0 {
+				fmt.Fprint(tw, "\t")
+			}
+			fmt.Fprint(tw, watchFieldValue(quote, field))
+		}
+		fmt.Fprintln(tw)
+	}
+	return tw.Flush()
+}
+
+func watchFieldHeader(field string) string {
+	switch field {
+	case "symbol":
+		return "SYMBOL"
+	case "name":
+		return "NAME"
+	case "price":
+		return "PRICE"
+	case "change":
+		return "CHANGE"
+	case "change-percent":
+		return "CHANGE%"
+	case "volume":
+		return "VOLUME"
+	case "market-cap":
+		return "MARKET CAP"
+	case "updated":
+		return "UPDATED"
+	default:
+		return strings.ToUpper(field)
+	}
+}
+
+func watchFieldValue(quote fmp.Quote, field string) string {
+	switch field {
+	case "symbol":
+		return quote.Symbol
+	case "name":
+		return quote.Name
+	case "price":
+		return formatFloat(quote.Price)
+	case "change":
+		return formatFloat(quote.Change)
+	case "change-percent":
+		return formatFloat(quote.ChangePercentage)
+	case "volume":
+		return formatFloat(quote.Volume)
+	case "market-cap":
+		return formatFloat(quote.MarketCap)
+	case "updated":
+		return formatUnixTimestamp(quote.Timestamp)
+	default:
+		return ""
 	}
 }
 
