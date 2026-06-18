@@ -126,6 +126,7 @@ stonk stocks watch AAPL MSFT NVDA
 stonk funds watch SPY VTI
 stonk crypto watch BTCUSD ETHUSD
 stonk forex watch EURUSD USDJPY
+stonk stocks watch AAPL MSFT --stream
 ```
 
 Expected features:
@@ -137,6 +138,7 @@ Expected features:
 - Show stale data or request failures per symbol without tearing down the UI.
 - Support `--jsonl` for streaming machine-readable updates.
 - Support `--interval`, `--sort`, and `--fields` once the basic UI works.
+- Support `stocks watch --stream` for FMP's real-time stock websocket feed.
 
 `watch` should use the same provider interfaces as one-shot commands. The watch
 loop belongs in CLI/application code, not inside a backend implementation.

@@ -159,7 +159,11 @@ stonk forex watch EURUSD USDJPY
 Watch supports `--interval`, `--sort`, and `--fields`, plus `--jsonl` for
 streaming machine-readable updates. Row order from the command line is
 preserved, and a failed or stale symbol is shown per-row without tearing down
-the UI.
+the UI. `stocks watch` can also use FMP's real-time stock websocket feed:
+
+```sh
+stonk stocks watch AAPL MSFT --stream
+```
 
 ## Output formats
 

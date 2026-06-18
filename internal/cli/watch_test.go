@@ -2,6 +2,7 @@ package cli
 
 import (
 	"bytes"
+	"math"
 	"testing"
 	"time"
 
@@ -25,6 +26,9 @@ func TestParseWatchOptions(t *testing.T) {
 	if !options.jsonl {
 		t.Fatalf("jsonl = false, want true")
 	}
+	if options.stream {
+		t.Fatalf("stream = true, want false")
+	}
 	if options.sort != "-change-percent" {
 		t.Fatalf("sort = %q, want -change-percent", options.sort)
 	}
@@ -36,6 +40,33 @@ func TestParseWatchOptions(t *testing.T) {
 	}
 	if options.symbols[0] != "AAPL" || options.symbols[1] != "MSFT" {
 		t.Fatalf("symbols = %#v, want AAPL/MSFT", options.symbols)
+	}
+}
+
+func TestParseWatchOptionsSupportsStream(t *testing.T) {
+	var stderr bytes.Buffer
+
+	options, ok := parseWatchOptions([]string{"AAPL", "--stream"}, &stderr)
+
+	if !ok {
+		t.Fatalf("parseWatchOptions() ok = false, stderr = %q", stderr.String())
+	}
+	if !options.stream {
+		t.Fatalf("stream = false, want true")
+	}
+}
+
+func TestRunFundsWatchRejectsStream(t *testing.T) {
+	var stdout bytes.Buffer
+	var stderr bytes.Buffer
+
+	code := runFunds(nil, []string{"watch", "SPY", "--stream"}, &stdout, &stderr, func(string) string { return "key" })
+
+	if code != 2 {
+		t.Fatalf("code = %d, want 2", code)
+	}
+	if got := stderr.String(); got != "funds watch does not support --stream\n" {
+		t.Fatalf("stderr = %q", got)
 	}
 }
 
@@ -99,5 +130,42 @@ func TestWriteWatchQuotesTableUsesSelectedFields(t *testing.T) {
 	got := stdout.String()
 	if got != "SYMBOL  PRICE   CHANGE%\nAAPL    295.95  -1.09945\n" {
 		t.Fatalf("stdout = %q", got)
+	}
+}
+
+func TestApplyStreamTradeUpdatesQuote(t *testing.T) {
+	quotes := map[string]fmp.Quote{
+		"AAPL": {
+			Symbol:    "AAPL",
+			Name:      "Apple Inc.",
+			Price:     100,
+			Change:    1,
+			Volume:    10,
+			Timestamp: 1,
+		},
+	}
+
+	applyStreamTrade(quotes, fmp.StreamTrade{
+		Symbol:    "aapl",
+		Price:     102,
+		Size:      5,
+		Timestamp: 1710000000123,
+	})
+
+	quote := quotes["AAPL"]
+	if quote.Price != 102 {
+		t.Fatalf("price = %v, want 102", quote.Price)
+	}
+	if quote.Change != 3 {
+		t.Fatalf("change = %v, want 3", quote.Change)
+	}
+	if math.Abs(quote.ChangePercentage-3.0303030303030303) > 0.0000000001 {
+		t.Fatalf("change percent = %v, want 3.0303030303030303", quote.ChangePercentage)
+	}
+	if quote.Volume != 15 {
+		t.Fatalf("volume = %v, want 15", quote.Volume)
+	}
+	if quote.Timestamp != 1710000000 {
+		t.Fatalf("timestamp = %d, want 1710000000", quote.Timestamp)
 	}
 }

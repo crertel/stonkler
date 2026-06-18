@@ -19,6 +19,7 @@ type watchOptions struct {
 	interval time.Duration
 	count    int
 	jsonl    bool
+	stream   bool
 	sort     string
 	fields   []string
 	symbols  []string
@@ -27,6 +28,7 @@ type watchOptions struct {
 type stockWatchUpdate struct {
 	Timestamp string           `json:"timestamp"`
 	Quotes    []fmp.StockQuote `json:"quotes,omitempty"`
+	Trade     *fmp.StreamTrade `json:"trade,omitempty"`
 	Error     string           `json:"error,omitempty"`
 }
 
@@ -56,6 +58,9 @@ func runStocksWatch(ctx context.Context, args []string, stdout, stderr io.Writer
 	}
 
 	client := fmp.NewClient(apiKey, http.DefaultClient)
+	if options.stream {
+		return runStockStreamWatchLoop(ctx, stdout, stderr, client, options)
+	}
 	return runQuoteWatchLoop(ctx, stdout, stderr, client, options, func(ctx context.Context, client *fmp.Client, symbols []string) ([]fmp.Quote, error) {
 		return client.StockQuotes(ctx, symbols)
 	})
@@ -71,6 +76,8 @@ func parseWatchOptions(args []string, stderr io.Writer) (watchOptions, bool) {
 		switch arg {
 		case "--jsonl":
 			options.jsonl = true
+		case "--stream":
+			options.stream = true
 		case "--sort":
 			value, ok := nextFlagValue(args, &i, "--sort", stderr)
 			if !ok {
@@ -126,6 +133,145 @@ func parseWatchOptions(args []string, stderr io.Writer) (watchOptions, bool) {
 	}
 
 	return options, true
+}
+
+func runStockStreamWatchLoop(ctx context.Context, stdout, stderr io.Writer, client *fmp.Client, options watchOptions) int {
+	quotes, err := client.StockQuotes(ctx, options.symbols)
+	if err != nil {
+		fmt.Fprintf(stderr, "stocks watch failed: %v\n", err)
+		return 1
+	}
+
+	quoteBySymbol := make(map[string]fmp.Quote, len(quotes))
+	for _, quote := range quotes {
+		quoteBySymbol[strings.ToUpper(quote.Symbol)] = quote
+	}
+
+	trades, errs := client.StreamStockTrades(ctx, options.symbols)
+	updates := 0
+	if code, done := writeStockStreamWatchUpdate(stdout, stderr, options, quoteBySymbol, nil, nil, updates); done {
+		return code
+	}
+
+	for {
+		select {
+		case trade, ok := <-trades:
+			if !ok {
+				select {
+				case err, ok := <-errs:
+					if ok && err != nil {
+						fmt.Fprintf(stderr, "stocks watch stream failed: %v\n", err)
+						return 1
+					}
+				default:
+				}
+				return 0
+			}
+			updates++
+			applyStreamTrade(quoteBySymbol, trade)
+			if code, done := writeStockStreamWatchUpdate(stdout, stderr, options, quoteBySymbol, &trade, nil, updates); done {
+				return code
+			}
+		case err, ok := <-errs:
+			if !ok {
+				errs = nil
+				continue
+			}
+			if err != nil {
+				if code, done := writeStockStreamWatchUpdate(stdout, stderr, options, quoteBySymbol, nil, err, updates); done {
+					return code
+				}
+				return 1
+			}
+		case <-ctx.Done():
+			return 130
+		}
+	}
+}
+
+func writeStockStreamWatchUpdate(stdout, stderr io.Writer, options watchOptions, quoteBySymbol map[string]fmp.Quote, trade *fmp.StreamTrade, streamErr error, updates int) (int, bool) {
+	now := time.Now().Format(time.RFC3339)
+	quotes := orderedWatchQuotes(options.symbols, quoteBySymbol)
+	sortWatchQuotes(quotes, options.sort)
+
+	if options.jsonl {
+		if err := writeStockStreamWatchJSONL(stdout, now, quotes, trade, streamErr); err != nil {
+			fmt.Fprintln(stderr, "failed to write output")
+			return 1, true
+		}
+	} else {
+		if updates > 0 {
+			fmt.Fprint(stdout, "\033[H\033[2J")
+		}
+		fmt.Fprintf(stdout, "Updated: %s\n\n", now)
+		if streamErr != nil {
+			fmt.Fprintf(stdout, "ERROR\t%s\n", streamErr)
+		} else if err := writeWatchQuotesTable(stdout, quotes, options.fields); err != nil {
+			fmt.Fprintf(stderr, "failed to write output: %v\n", err)
+			return 1, true
+		}
+	}
+
+	if options.count > 0 && updates >= options.count {
+		return 0, true
+	}
+	return 0, false
+}
+
+func applyStreamTrade(quoteBySymbol map[string]fmp.Quote, trade fmp.StreamTrade) {
+	symbol := strings.ToUpper(trade.Symbol)
+	quote := quoteBySymbol[symbol]
+	quote.Symbol = symbol
+	if quote.Price != 0 {
+		referencePrice := quote.Price - quote.Change
+		quote.Change = trade.Price - referencePrice
+		quote.ChangePercentage = changePercent(referencePrice, quote.Change)
+	}
+	quote.Price = trade.Price
+	if trade.Size > 0 {
+		quote.Volume += trade.Size
+	}
+	if trade.Timestamp > 0 {
+		quote.Timestamp = normalizeStreamTimestamp(trade.Timestamp)
+	} else {
+		quote.Timestamp = time.Now().Unix()
+	}
+	quoteBySymbol[symbol] = quote
+}
+
+func changePercent(previousPrice float64, change float64) float64 {
+	if previousPrice == 0 {
+		return 0
+	}
+	return change / previousPrice * 100
+}
+
+func normalizeStreamTimestamp(timestamp int64) int64 {
+	if timestamp > 9999999999 {
+		return timestamp / 1000
+	}
+	return timestamp
+}
+
+func orderedWatchQuotes(symbols []string, quoteBySymbol map[string]fmp.Quote) []fmp.Quote {
+	quotes := make([]fmp.Quote, 0, len(symbols))
+	seen := make(map[string]struct{}, len(symbols))
+	for _, symbol := range symbols {
+		normalized := strings.ToUpper(strings.TrimSpace(symbol))
+		if normalized == "" {
+			continue
+		}
+		if _, ok := seen[normalized]; ok {
+			continue
+		}
+		seen[normalized] = struct{}{}
+		quote, ok := quoteBySymbol[normalized]
+		if !ok {
+			quote = fmp.Quote{Symbol: normalized}
+		}
+		quotes = append(quotes, quote)
+	}
+	return quotes
 }
 
 func runQuoteWatchLoop(ctx context.Context, stdout, stderr io.Writer, client *fmp.Client, options watchOptions, fetch quoteFetcher) int {
@@ -322,6 +468,21 @@ func writeStockWatchJSONL(w io.Writer, timestamp string, quotes []fmp.StockQuote
 	if err != nil {
 		update.Error = err.Error()
 		update.Quotes = nil
+	}
+
+	return json.NewEncoder(w).Encode(update)
+}
+
+func writeStockStreamWatchJSONL(w io.Writer, timestamp string, quotes []fmp.Quote, trade *fmp.StreamTrade, err error) error {
+	update := stockWatchUpdate{
+		Timestamp: timestamp,
+		Quotes:    quotes,
+		Trade:     trade,
+	}
+	if err != nil {
+		update.Error = err.Error()
+		update.Quotes = nil
+		update.Trade = nil
 	}
 
 	return json.NewEncoder(w).Encode(update)

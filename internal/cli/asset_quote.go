@@ -86,6 +86,10 @@ func runQuoteWatchCommand(
 		fmt.Fprintf(stderr, "%s watch requires at least one symbol\n", domain)
 		return 2
 	}
+	if options.stream {
+		fmt.Fprintf(stderr, "%s watch does not support --stream\n", domain)
+		return 2
+	}
 
 	apiKey := getenv("FMP_API_KEY")
 	if apiKey == "" {

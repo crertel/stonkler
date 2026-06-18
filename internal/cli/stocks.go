@@ -183,6 +183,7 @@ Flags:
   --sort <field>         Sort by symbol, price, change, change-percent, or volume
   --fields <list>        Comma-separated fields to show
   --jsonl                Write newline-delimited JSON updates
+  --stream               Use FMP's real-time stock websocket feed
 `)
 }
 
