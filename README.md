@@ -72,6 +72,7 @@ Top-level commands are organized by domain first:
 | `forex`       | Foreign exchange market data                         |
 | `commodities` | Commodity market data                                |
 | `indexes`     | Index market data                                    |
+| `portfolio`   | Portfolio cost basis and market value views          |
 | `search`      | Discover symbols and securities                      |
 | `get`         | Workflow-oriented shortcuts (porcelain)              |
 | `config`      | Configuration and provider diagnostics               |
@@ -111,6 +112,48 @@ stonk crypto quote BTCUSD
 stonk forex quote EURUSD
 stonk commodities quote GCUSD
 stonk indexes quote GSPC
+```
+
+### Portfolio
+
+`portfolio` composes local cost-basis lots with provider-backed quotes. The
+portfolio file is a versioned JSON document grouped by domain and symbol. Each
+symbol has one or more lots; `quantity` and `acquired_on` are optional.
+
+```json
+{
+  "version": 1,
+  "stocks": {
+    "AAPL": {
+      "lots": [
+        {
+          "basis": 170.5,
+          "quantity": 5,
+          "acquired_on": "2024-02-15"
+        },
+        {
+          "basis": 190
+        }
+      ]
+    }
+  }
+}
+```
+
+Use `--basis <path>` or set `STONK_PORTFOLIO_FILE`:
+
+```sh
+stonk portfolio show --basis portfolio.json
+stonk portfolio quote --basis portfolio.json
+stonk portfolio watch --basis portfolio.json
+```
+
+Quote and watch commands can also overlay basis columns for relevant
+securities:
+
+```sh
+stonk stocks quote AAPL --basis portfolio.json
+stonk stocks watch AAPL MSFT --basis portfolio.json
 ```
 
 ### Search
@@ -156,10 +199,11 @@ stonk crypto watch BTCUSD ETHUSD
 stonk forex watch EURUSD USDJPY
 ```
 
-Watch supports `--interval`, `--sort`, and `--fields`, plus `--jsonl` for
-streaming machine-readable updates. Row order from the command line is
-preserved, and a failed or stale symbol is shown per-row without tearing down
-the UI. `stocks watch` can also use FMP's real-time stock websocket feed:
+Watch supports `--interval`, `--sort`, `--fields`, and `--basis`, plus
+`--jsonl` for streaming machine-readable updates. Row order from the command
+line is preserved, and a failed or stale symbol is shown per-row without
+tearing down the UI. `stocks watch` can also use FMP's real-time stock
+websocket feed:
 
 ```sh
 stonk stocks watch AAPL MSFT --stream

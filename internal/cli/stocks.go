@@ -65,10 +65,12 @@ func runStocksQuote(ctx context.Context, args []string, stdout, stderr io.Writer
 		return 0
 	}
 
-	format, symbols, ok := parseOutputFlags(args, stderr)
+	options, ok := parseBasisOutputOptions(args, stderr)
 	if !ok {
 		return 2
 	}
+	format := options.format
+	symbols := options.remaining
 	if len(symbols) == 0 {
 		fmt.Fprintln(stderr, "stocks quote requires at least one symbol")
 		return 2
@@ -87,8 +89,18 @@ func runStocksQuote(ctx context.Context, args []string, stdout, stderr io.Writer
 		return 1
 	}
 
-	if err := writeStockQuotes(stdout, quotes, format); err != nil {
-		fmt.Fprintf(stderr, "failed to write output: %v\n", err)
+	var writeErr error
+	if options.basisPath != "" {
+		book, ok := loadBasisPathOption(options.basisPath, stderr, getenv)
+		if !ok {
+			return 2
+		}
+		writeErr = writeQuotesWithBasis(stdout, attachBasis("stocks", quotes, book), format)
+	} else {
+		writeErr = writeStockQuotes(stdout, quotes, format)
+	}
+	if writeErr != nil {
+		fmt.Fprintf(stderr, "failed to write output: %v\n", writeErr)
 		return 1
 	}
 	return 0
@@ -127,6 +139,7 @@ Usage:
 Flags:
   --json  Write JSON output
   --csv   Write CSV output
+  --basis <path>  Add cost basis and unrealized gain columns
 `)
 }
 
@@ -183,6 +196,7 @@ Flags:
   --sort <field>         Sort by symbol, price, change, change-percent, or volume
   --fields <list>        Comma-separated fields to show
   --jsonl                Write newline-delimited JSON updates
+  --basis <path>         Add cost basis and unrealized gain columns
   --stream               Use FMP's real-time stock websocket feed
 `)
 }

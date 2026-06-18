@@ -30,10 +30,12 @@ func runDomainQuote(
 		return 0
 	}
 
-	format, symbols, ok := parseOutputFlags(args, stderr)
+	options, ok := parseBasisOutputOptions(args, stderr)
 	if !ok {
 		return 2
 	}
+	format := options.format
+	symbols := options.remaining
 	if len(symbols) == 0 {
 		fmt.Fprintf(stderr, "%s quote requires at least one symbol\n", domain)
 		return 2
@@ -52,8 +54,18 @@ func runDomainQuote(
 		return 1
 	}
 
-	if err := writeStockQuotes(stdout, quotes, format); err != nil {
-		fmt.Fprintf(stderr, "failed to write output: %v\n", err)
+	var writeErr error
+	if options.basisPath != "" {
+		book, ok := loadBasisPathOption(options.basisPath, stderr, getenv)
+		if !ok {
+			return 2
+		}
+		writeErr = writeQuotesWithBasis(stdout, attachBasis(domain, quotes, book), format)
+	} else {
+		writeErr = writeStockQuotes(stdout, quotes, format)
+	}
+	if writeErr != nil {
+		fmt.Fprintf(stderr, "failed to write output: %v\n", writeErr)
 		return 1
 	}
 	return 0
@@ -98,5 +110,9 @@ func runQuoteWatchCommand(
 	}
 
 	client := fmp.NewClient(apiKey, http.DefaultClient)
-	return runQuoteWatchLoop(ctx, stdout, stderr, client, options, fetch)
+	book, ok := loadOptionalWatchBasis(options.basisPath, stderr, getenv)
+	if !ok {
+		return 2
+	}
+	return runQuoteWatchLoop(ctx, stdout, stderr, client, options, domain, book, fetch)
 }

@@ -41,6 +41,8 @@ func Run(ctx context.Context, args []string, stdout, stderr io.Writer) int {
 		return runCommodities(ctx, args[1:], stdout, stderr, os.Getenv)
 	case "indexes":
 		return runIndexes(ctx, args[1:], stdout, stderr, os.Getenv)
+	case "portfolio":
+		return runPortfolio(ctx, args[1:], stdout, stderr, os.Getenv)
 	default:
 		fmt.Fprintf(stderr, "unknown command %q\n\n", args[0])
 		writeRootHelp(stderr)
@@ -61,6 +63,7 @@ Commands:
   forex       Foreign exchange market data
   commodities Commodity market data
   indexes     Index market data
+  portfolio   Portfolio cost basis and market value views
   search      Discover symbols and securities
   get         Workflow-oriented shortcuts
   config      Configuration and provider diagnostics

@@ -60,6 +60,7 @@ Usage:
 Flags:
   --json  Write JSON output
   --csv   Write CSV output
+  --basis <path>  Add cost basis and unrealized gain columns
 `)
 }
 
@@ -102,5 +103,6 @@ Flags:
   --sort <field>         Sort by symbol, price, change, change-percent, or volume
   --fields <list>        Comma-separated fields to show
   --jsonl                Write newline-delimited JSON updates
+  --basis <path>         Add cost basis and unrealized gain columns
 `)
 }

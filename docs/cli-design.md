@@ -15,6 +15,7 @@ stonk crypto ...
 stonk forex ...
 stonk commodities ...
 stonk indexes ...
+stonk portfolio ...
 stonk search ...
 stonk get ...
 stonk config ...
@@ -74,6 +75,46 @@ stonk commodities watch GCUSD CLUSD
 stonk indexes quote GSPC
 stonk indexes history GSPC --from 2024-01-01
 stonk indexes watch GSPC DJI IXIC
+```
+
+## Portfolio
+
+`portfolio` is the local state layer for user-owned cost basis. It should
+compose local lots with provider-backed quote data without changing domain
+commands into portfolio commands.
+
+The portfolio file is JSON, grouped by domain and symbol:
+
+```json
+{
+  "version": 1,
+  "stocks": {
+    "AAPL": {
+      "lots": [
+        {
+          "basis": 170.5,
+          "quantity": 5,
+          "acquired_on": "2024-02-15"
+        },
+        {
+          "basis": 190
+        }
+      ]
+    }
+  }
+}
+```
+
+`basis` is per-unit cost basis. `quantity` is optional; when omitted, commands
+can show basis but should not fabricate total cost, market value, or unrealized
+gain. `acquired_on` is optional and uses `YYYY-MM-DD`.
+
+```text
+stonk portfolio show --basis portfolio.json
+stonk portfolio quote --basis portfolio.json
+stonk portfolio watch --basis portfolio.json
+stonk stocks quote AAPL --basis portfolio.json
+stonk stocks watch AAPL MSFT --basis portfolio.json
 ```
 
 ## Search
@@ -137,7 +178,7 @@ Expected features:
 - Preserve row order from the command line.
 - Show stale data or request failures per symbol without tearing down the UI.
 - Support `--jsonl` for streaming machine-readable updates.
-- Support `--interval`, `--sort`, and `--fields` once the basic UI works.
+- Support `--interval`, `--sort`, `--fields`, and `--basis` once the basic UI works.
 - Support `stocks watch --stream` for FMP's real-time stock websocket feed.
 
 `watch` should use the same provider interfaces as one-shot commands. The watch

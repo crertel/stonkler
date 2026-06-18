@@ -25,10 +25,12 @@ func runGetQuote(ctx context.Context, args []string, stdout, stderr io.Writer, g
 		return 0
 	}
 
-	format, queries, ok := parseOutputFlags(args, stderr)
+	options, ok := parseBasisOutputOptions(args, stderr)
 	if !ok {
 		return 2
 	}
+	format := options.format
+	queries := options.remaining
 	if len(queries) == 0 {
 		fmt.Fprintln(stderr, "get quote requires at least one symbol or name")
 		return 2
@@ -53,8 +55,18 @@ func runGetQuote(ctx context.Context, args []string, stdout, stderr io.Writer, g
 		return 1
 	}
 
-	if err := writeStockQuotes(stdout, quotes, format); err != nil {
-		fmt.Fprintf(stderr, "failed to write output: %v\n", err)
+	var writeErr error
+	if options.basisPath != "" {
+		book, ok := loadBasisPathOption(options.basisPath, stderr, getenv)
+		if !ok {
+			return 2
+		}
+		writeErr = writeQuotesWithBasis(stdout, attachBasis("stocks", quotes, book), format)
+	} else {
+		writeErr = writeStockQuotes(stdout, quotes, format)
+	}
+	if writeErr != nil {
+		fmt.Fprintf(stderr, "failed to write output: %v\n", writeErr)
 		return 1
 	}
 	return 0
@@ -70,6 +82,7 @@ Usage:
 Flags:
   --json  Write JSON output
   --csv   Write CSV output
+  --basis <path>  Add cost basis and unrealized gain columns
 `)
 }
 

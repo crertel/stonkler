@@ -16,13 +16,14 @@ import (
 )
 
 type watchOptions struct {
-	interval time.Duration
-	count    int
-	jsonl    bool
-	stream   bool
-	sort     string
-	fields   []string
-	symbols  []string
+	interval  time.Duration
+	count     int
+	jsonl     bool
+	stream    bool
+	basisPath string
+	sort      string
+	fields    []string
+	symbols   []string
 }
 
 type stockWatchUpdate struct {
@@ -58,10 +59,14 @@ func runStocksWatch(ctx context.Context, args []string, stdout, stderr io.Writer
 	}
 
 	client := fmp.NewClient(apiKey, http.DefaultClient)
-	if options.stream {
-		return runStockStreamWatchLoop(ctx, stdout, stderr, client, options)
+	book, ok := loadOptionalWatchBasis(options.basisPath, stderr, getenv)
+	if !ok {
+		return 2
 	}
-	return runQuoteWatchLoop(ctx, stdout, stderr, client, options, func(ctx context.Context, client *fmp.Client, symbols []string) ([]fmp.Quote, error) {
+	if options.stream {
+		return runStockStreamWatchLoop(ctx, stdout, stderr, client, options, book)
+	}
+	return runQuoteWatchLoop(ctx, stdout, stderr, client, options, "stocks", book, func(ctx context.Context, client *fmp.Client, symbols []string) ([]fmp.Quote, error) {
 		return client.StockQuotes(ctx, symbols)
 	})
 }
@@ -78,6 +83,12 @@ func parseWatchOptions(args []string, stderr io.Writer) (watchOptions, bool) {
 			options.jsonl = true
 		case "--stream":
 			options.stream = true
+		case "--basis":
+			value, ok := nextFlagValue(args, &i, "--basis", stderr)
+			if !ok {
+				return watchOptions{}, false
+			}
+			options.basisPath = value
 		case "--sort":
 			value, ok := nextFlagValue(args, &i, "--sort", stderr)
 			if !ok {
@@ -135,7 +146,14 @@ func parseWatchOptions(args []string, stderr io.Writer) (watchOptions, bool) {
 	return options, true
 }
 
-func runStockStreamWatchLoop(ctx context.Context, stdout, stderr io.Writer, client *fmp.Client, options watchOptions) int {
+func loadOptionalWatchBasis(path string, stderr io.Writer, getenv getenvFunc) (*basisBook, bool) {
+	if path == "" {
+		return nil, true
+	}
+	return loadBasisPathOption(path, stderr, getenv)
+}
+
+func runStockStreamWatchLoop(ctx context.Context, stdout, stderr io.Writer, client *fmp.Client, options watchOptions, book *basisBook) int {
 	quotes, err := client.StockQuotes(ctx, options.symbols)
 	if err != nil {
 		fmt.Fprintf(stderr, "stocks watch failed: %v\n", err)
@@ -149,7 +167,7 @@ func runStockStreamWatchLoop(ctx context.Context, stdout, stderr io.Writer, clie
 
 	trades, errs := client.StreamStockTrades(ctx, options.symbols)
 	updates := 0
-	if code, done := writeStockStreamWatchUpdate(stdout, stderr, options, quoteBySymbol, nil, nil, updates); done {
+	if code, done := writeStockStreamWatchUpdate(stdout, stderr, options, quoteBySymbol, nil, nil, updates, book); done {
 		return code
 	}
 
@@ -169,7 +187,7 @@ func runStockStreamWatchLoop(ctx context.Context, stdout, stderr io.Writer, clie
 			}
 			updates++
 			applyStreamTrade(quoteBySymbol, trade)
-			if code, done := writeStockStreamWatchUpdate(stdout, stderr, options, quoteBySymbol, &trade, nil, updates); done {
+			if code, done := writeStockStreamWatchUpdate(stdout, stderr, options, quoteBySymbol, &trade, nil, updates, book); done {
 				return code
 			}
 		case err, ok := <-errs:
@@ -178,7 +196,7 @@ func runStockStreamWatchLoop(ctx context.Context, stdout, stderr io.Writer, clie
 				continue
 			}
 			if err != nil {
-				if code, done := writeStockStreamWatchUpdate(stdout, stderr, options, quoteBySymbol, nil, err, updates); done {
+				if code, done := writeStockStreamWatchUpdate(stdout, stderr, options, quoteBySymbol, nil, err, updates, book); done {
 					return code
 				}
 				return 1
@@ -189,13 +207,19 @@ func runStockStreamWatchLoop(ctx context.Context, stdout, stderr io.Writer, clie
 	}
 }
 
-func writeStockStreamWatchUpdate(stdout, stderr io.Writer, options watchOptions, quoteBySymbol map[string]fmp.Quote, trade *fmp.StreamTrade, streamErr error, updates int) (int, bool) {
+func writeStockStreamWatchUpdate(stdout, stderr io.Writer, options watchOptions, quoteBySymbol map[string]fmp.Quote, trade *fmp.StreamTrade, streamErr error, updates int, book *basisBook) (int, bool) {
 	now := time.Now().Format(time.RFC3339)
 	quotes := orderedWatchQuotes(options.symbols, quoteBySymbol)
 	sortWatchQuotes(quotes, options.sort)
 
 	if options.jsonl {
-		if err := writeStockStreamWatchJSONL(stdout, now, quotes, trade, streamErr); err != nil {
+		var err error
+		if book != nil {
+			err = writeBasisWatchJSONL(stdout, now, attachBasis("stocks", quotes, book), streamErr)
+		} else {
+			err = writeStockStreamWatchJSONL(stdout, now, quotes, trade, streamErr)
+		}
+		if err != nil {
 			fmt.Fprintln(stderr, "failed to write output")
 			return 1, true
 		}
@@ -206,7 +230,7 @@ func writeStockStreamWatchUpdate(stdout, stderr io.Writer, options watchOptions,
 		fmt.Fprintf(stdout, "Updated: %s\n\n", now)
 		if streamErr != nil {
 			fmt.Fprintf(stdout, "ERROR\t%s\n", streamErr)
-		} else if err := writeWatchQuotesTable(stdout, quotes, options.fields); err != nil {
+		} else if err := writeWatchRows(stdout, "stocks", quotes, options.fields, book); err != nil {
 			fmt.Fprintf(stderr, "failed to write output: %v\n", err)
 			return 1, true
 		}
@@ -274,7 +298,7 @@ func orderedWatchQuotes(symbols []string, quoteBySymbol map[string]fmp.Quote) []
 	return quotes
 }
 
-func runQuoteWatchLoop(ctx context.Context, stdout, stderr io.Writer, client *fmp.Client, options watchOptions, fetch quoteFetcher) int {
+func runQuoteWatchLoop(ctx context.Context, stdout, stderr io.Writer, client *fmp.Client, options watchOptions, domain string, book *basisBook, fetch quoteFetcher) int {
 	iteration := 0
 	for {
 		if options.count > 0 && iteration >= options.count {
@@ -288,7 +312,13 @@ func runQuoteWatchLoop(ctx context.Context, stdout, stderr io.Writer, client *fm
 			sortWatchQuotes(quotes, options.sort)
 		}
 		if options.jsonl {
-			if writeStockWatchJSONL(stdout, now, quotes, err) != nil {
+			var writeErr error
+			if book != nil {
+				writeErr = writeBasisWatchJSONL(stdout, now, attachBasis(domain, quotes, book), err)
+			} else {
+				writeErr = writeStockWatchJSONL(stdout, now, quotes, err)
+			}
+			if writeErr != nil {
 				fmt.Fprintln(stderr, "failed to write output")
 				return 1
 			}
@@ -299,7 +329,7 @@ func runQuoteWatchLoop(ctx context.Context, stdout, stderr io.Writer, client *fm
 			fmt.Fprintf(stdout, "Updated: %s\n\n", now)
 			if err != nil {
 				fmt.Fprintf(stdout, "ERROR\t%s\n", err)
-			} else if err := writeWatchQuotesTable(stdout, quotes, options.fields); err != nil {
+			} else if err := writeWatchRows(stdout, domain, quotes, options.fields, book); err != nil {
 				fmt.Fprintf(stderr, "failed to write output: %v\n", err)
 				return 1
 			}
@@ -369,6 +399,13 @@ func writeWatchQuotesTable(w io.Writer, quotes []fmp.Quote, fields []string) err
 		fmt.Fprintln(tw)
 	}
 	return tw.Flush()
+}
+
+func writeWatchRows(w io.Writer, domain string, quotes []fmp.Quote, fields []string, book *basisBook) error {
+	if book != nil {
+		return writeQuotesWithBasisTable(w, attachBasis(domain, quotes, book))
+	}
+	return writeWatchQuotesTable(w, quotes, fields)
 }
 
 func watchFieldHeader(field string) string {
@@ -485,5 +522,17 @@ func writeStockStreamWatchJSONL(w io.Writer, timestamp string, quotes []fmp.Quot
 		update.Trade = nil
 	}
 
+	return json.NewEncoder(w).Encode(update)
+}
+
+func writeBasisWatchJSONL(w io.Writer, timestamp string, rows []quoteWithBasis, err error) error {
+	update := portfolioQuoteUpdate{
+		Timestamp: timestamp,
+		Quotes:    rows,
+	}
+	if err != nil {
+		update.Error = err.Error()
+		update.Quotes = nil
+	}
 	return json.NewEncoder(w).Encode(update)
 }

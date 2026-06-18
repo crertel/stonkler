@@ -43,6 +43,19 @@ func TestParseWatchOptions(t *testing.T) {
 	}
 }
 
+func TestParseWatchOptionsSupportsBasis(t *testing.T) {
+	var stderr bytes.Buffer
+
+	options, ok := parseWatchOptions([]string{"AAPL", "--basis", "portfolio.json"}, &stderr)
+
+	if !ok {
+		t.Fatalf("parseWatchOptions() ok = false, stderr = %q", stderr.String())
+	}
+	if options.basisPath != "portfolio.json" {
+		t.Fatalf("basisPath = %q, want portfolio.json", options.basisPath)
+	}
+}
+
 func TestParseWatchOptionsSupportsStream(t *testing.T) {
 	var stderr bytes.Buffer
 
