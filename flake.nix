@@ -32,7 +32,7 @@
           pname = "stonk";
           version = "0.1.0";
           src = pkgs.lib.cleanSource ./.;
-          vendorHash = null;
+          vendorHash = "sha256-0Qxw+MUYVgzgWB8vi3HBYtVXSq/btfh4ZfV/m1chNrA=";
           subPackages = [ "cmd/stonk" ];
         };
 
@@ -40,7 +40,7 @@
           pname = "stonk";
           version = "0.1.0";
           src = pkgs.lib.cleanSource ./.;
-          vendorHash = null;
+          vendorHash = "sha256-0Qxw+MUYVgzgWB8vi3HBYtVXSq/btfh4ZfV/m1chNrA=";
           subPackages = [ "cmd/stonk" ];
         };
       });
